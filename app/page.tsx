@@ -1,0 +1,16 @@
+import Dashboard from "@/components/Dashboard";
+
+export default function Home() {
+  return (
+    <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <header className="mb-6">
+        <h1 className="text-2xl font-bold text-slate-900">UK Local Opportunity Finder</h1>
+        <p className="mt-1 text-sm text-slate-500">
+          Find UK local service businesses with strong Google reviews but a weak digital
+          presence — good prospects for a website / digital upsell.
+        </p>
+      </header>
+      <Dashboard />
+    </main>
+  );
+}
