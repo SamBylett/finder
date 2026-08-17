@@ -5,11 +5,14 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import type { Business } from "@/lib/types";
 import type { ScoreBreakdownLine } from "@/lib/scoring";
-import { tierBadgeClasses, websiteStatusBadgeClasses, websiteStatusLabel, severityClasses } from "@/lib/ui";
+import type { Demo } from "@/lib/demo/types";
+import { tierBadgeClasses, websiteStatusBadgeClasses, websiteStatusLabel, severityClasses, demoPotentialBadgeClasses } from "@/lib/ui";
+import { DemoActions } from "@/components/DemoActions";
 
 interface DetailResponse {
   business: Business;
   breakdown: ScoreBreakdownLine[];
+  demo: Demo | null;
 }
 
 export default function BusinessDetailPage() {
@@ -20,6 +23,7 @@ export default function BusinessDetailPage() {
 
   useEffect(() => {
     let cancelled = false;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- resetting loading/error at the start of each params.id-driven fetch is intentional
     setLoading(true);
     setError(null);
     fetch(`/api/business/${params.id}`)
@@ -56,12 +60,12 @@ export default function BusinessDetailPage() {
         </div>
       )}
 
-      {data && !loading && <BusinessDetail business={data.business} breakdown={data.breakdown} />}
+      {data && !loading && <BusinessDetail business={data.business} breakdown={data.breakdown} demo={data.demo} />}
     </main>
   );
 }
 
-function BusinessDetail({ business, breakdown }: { business: Business; breakdown: ScoreBreakdownLine[] }) {
+function BusinessDetail({ business, breakdown, demo }: { business: Business; breakdown: ScoreBreakdownLine[]; demo: Demo | null }) {
   return (
     <div className="mt-4 space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -162,6 +166,21 @@ function BusinessDetail({ business, breakdown }: { business: Business; breakdown
             ))}
           </ul>
         )}
+      </Section>
+
+      <Section title="Demo potential">
+        <div className="flex items-center gap-3">
+          <span className={`rounded-full px-3 py-1 text-sm font-semibold ${demoPotentialBadgeClasses(business.demo_potential_tier)}`}>
+            {business.demo_potential_tier}
+          </span>
+          <span className="text-lg font-bold text-slate-900">{business.demo_potential_score}/100</span>
+        </div>
+        <p className="mt-2 text-sm text-slate-500">
+          How suitable this business is for a visually impressive speculative demo site — separate from its Opportunity Score.
+        </p>
+        <div className="mt-4">
+          <DemoActions business={business} demo={demo} />
+        </div>
       </Section>
 
       <Section title="Score breakdown">

@@ -3,10 +3,10 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import type { Business, OpportunityTier } from "@/lib/types";
-import { tierBadgeClasses, websiteStatusBadgeClasses, websiteStatusLabel } from "@/lib/ui";
+import { tierBadgeClasses, websiteStatusBadgeClasses, websiteStatusLabel, demoPotentialBadgeClasses } from "@/lib/ui";
 import { businessesToCsv, downloadCsv } from "@/lib/csv";
 
-type SortKey = "opportunity_score" | "google_review_count";
+type SortKey = "opportunity_score" | "google_review_count" | "demo_potential_score";
 type FilterKey = "HOT" | "OPPORTUNITY" | "LOW_PRIORITY" | "NO_WEBSITE" | "WEAK_WEBSITE" | "EMAIL_AVAILABLE";
 
 const FILTERS: { key: FilterKey; label: string }[] = [
@@ -113,6 +113,7 @@ export default function ResultsTable({ results }: { results: Business[] }) {
               <Th>Phone</Th>
               <ThSortable label="Score" active={sortKey === "opportunity_score"} dir={sortDir} onClick={() => toggleSort("opportunity_score")} />
               <Th>Tier</Th>
+              <ThSortable label="Demo Potential" active={sortKey === "demo_potential_score"} dir={sortDir} onClick={() => toggleSort("demo_potential_score")} />
               <Th>Actions</Th>
             </tr>
           </thead>
@@ -139,6 +140,11 @@ export default function ResultsTable({ results }: { results: Business[] }) {
                   </span>
                 </td>
                 <td className="px-4 py-3">
+                  <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${demoPotentialBadgeClasses(b.demo_potential_tier)}`}>
+                    {b.demo_potential_score} · {b.demo_potential_tier}
+                  </span>
+                </td>
+                <td className="px-4 py-3">
                   <Link href={`/business/${b.id}`} className="text-sm font-medium text-blue-600 hover:underline">
                     View details
                   </Link>
@@ -147,7 +153,7 @@ export default function ResultsTable({ results }: { results: Business[] }) {
             ))}
             {sorted.length === 0 && (
               <tr>
-                <td colSpan={10} className="px-4 py-8 text-center text-slate-400">
+                <td colSpan={11} className="px-4 py-8 text-center text-slate-400">
                   No businesses match the current filters.
                 </td>
               </tr>

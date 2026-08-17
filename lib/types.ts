@@ -38,6 +38,11 @@ export interface Business {
   website_score: number | null; // 0-100, quality of the existing website (if any)
   opportunity_score: number; // 0-100, higher = better prospect
   opportunity_tier: OpportunityTier;
+  // Separate from opportunity_score: how suitable this business is for a
+  // visually impressive speculative demo site, not whether it's a good
+  // commercial prospect. See lib/demo/potential.ts.
+  demo_potential_score: number;
+  demo_potential_tier: "EXCELLENT DEMO" | "GOOD DEMO" | "POSSIBLE" | "LOW VALUE";
   analysis_summary: string;
   detected_issues: DetectedIssue[];
   created_at: string;

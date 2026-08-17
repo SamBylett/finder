@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCachedBusiness } from "@/lib/store";
+import { getDemoByBusinessId } from "@/lib/demo/store";
 
 export async function GET(
   _request: NextRequest,
@@ -18,5 +19,7 @@ export async function GET(
     );
   }
 
-  return NextResponse.json(cached);
+  const demo = await getDemoByBusinessId(id);
+
+  return NextResponse.json({ ...cached, demo: demo ?? null });
 }

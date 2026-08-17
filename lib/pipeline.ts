@@ -8,6 +8,7 @@ import { getBusinessSearchProvider } from "@/lib/providers/business-search";
 import { getWebsiteAnalyzer } from "@/lib/website-analyzer";
 import { scoreBusiness, type ScoreBreakdownLine } from "@/lib/scoring";
 import { mapWithConcurrency } from "@/lib/concurrency";
+import { calculateDemoPotential } from "@/lib/demo/potential";
 
 // How many website analyses run at once. Bounded rather than fully unbounded
 // so a large maxResults doesn't fire e.g. 100 simultaneous outbound fetches —
@@ -80,7 +81,7 @@ export async function runOpportunitySearch(params: SearchParams): Promise<Pipeli
         objectiveChecks,
       });
 
-      const business: Business = {
+      const businessBeforeDemoPotential: Business = {
         ...raw,
         website_status: websiteStatus,
         website_score: websiteScore,
@@ -89,6 +90,19 @@ export async function runOpportunitySearch(params: SearchParams): Promise<Pipeli
         analysis_summary: analysisSummary,
         detected_issues: scoring.detectedIssues,
         created_at: new Date().toISOString(),
+        demo_potential_score: 0,
+        demo_potential_tier: "LOW VALUE",
+      };
+
+      // Cheap, deterministic — safe to compute for every result, unlike the
+      // AI-driven demo generation stages which only ever run on explicit
+      // "Build Demo" action.
+      const demoPotential = calculateDemoPotential(businessBeforeDemoPotential);
+
+      const business: Business = {
+        ...businessBeforeDemoPotential,
+        demo_potential_score: demoPotential.score,
+        demo_potential_tier: demoPotential.tier,
       };
 
       breakdowns[business.id] = scoring.breakdown;

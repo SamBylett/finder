@@ -47,6 +47,19 @@ export function websiteStatusBadgeClasses(status: WebsiteStatus): string {
   }
 }
 
+export function demoPotentialBadgeClasses(tier: "EXCELLENT DEMO" | "GOOD DEMO" | "POSSIBLE" | "LOW VALUE"): string {
+  switch (tier) {
+    case "EXCELLENT DEMO":
+      return "bg-purple-100 text-purple-800 border border-purple-200";
+    case "GOOD DEMO":
+      return "bg-blue-50 text-blue-700 border border-blue-200";
+    case "POSSIBLE":
+      return "bg-slate-100 text-slate-600 border border-slate-200";
+    case "LOW VALUE":
+      return "bg-slate-50 text-slate-400 border border-slate-200";
+  }
+}
+
 export function severityClasses(severity: "low" | "medium" | "high"): string {
   switch (severity) {
     case "high":
