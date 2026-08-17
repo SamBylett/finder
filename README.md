@@ -8,7 +8,7 @@ Finds UK local service businesses (roofers, plumbers, landscapers, etc.) with st
 
 1. Enter a business type/keyword, location, radius, min. review count, and max results.
 2. **Discovery** — finds nearby businesses via the Google Places API (New).
-3. **Website analysis** — for each business with a website, fetches the homepage and runs objective checks (HTTPS, mobile-responsive, CTA, contact/quote form, online booking, live chat, testimonials, broken links, outdated copyright, etc.), plus an AI-assisted qualitative read via Claude.
+3. **Website analysis** — for each business with a website, fetches the homepage plus up to two likely subpages (contact, quote/booking) and runs objective checks (HTTPS, mobile-responsive, CTA, contact/quote form, online booking, live chat, testimonials, broken links, outdated copyright, etc.), plus an AI-assisted qualitative read via Claude.
 4. **Contact extraction** — pulls email and social links straight off the site when the search provider doesn't return them.
 5. **Scoring** — deterministic point-based scoring (website weakness + business quality + contactability), normalised 0–100, tiered HOT / OPPORTUNITY / LOW PRIORITY.
 6. **Persistence** — results are upserted into Supabase (latest-known-state per business) so they survive a refresh or restart.

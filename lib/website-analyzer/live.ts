@@ -1,6 +1,8 @@
-// Real WebsiteAnalyzer implementation. Fetches the homepage and runs
-// deterministic, regex/DOM based checks against it — no headless browser,
-// no AI call. Only ever inspects the homepage in V1 (no multi-page crawl).
+// Real WebsiteAnalyzer implementation. Fetches the homepage plus up to two
+// likely subpages (contact, quote/booking) and runs deterministic,
+// regex/DOM based checks against them — no headless browser, no AI call for
+// the objective checks. A form/booking widget that only lives on /contact or
+// /quote is common enough that homepage-only analysis was missing it.
 //
 // Never throws: any fetch/parse failure is reported as status="broken_website"
 // so callers can rely on always getting a usable result.
@@ -16,8 +18,15 @@ import type {
 import { assessDesignQuality } from "./ai-assessment";
 
 const FETCH_TIMEOUT_MS = 6000;
+const SUBPAGE_FETCH_TIMEOUT_MS = 4000;
 const LINK_CHECK_TIMEOUT_MS = 2500;
 const MAX_LINKS_TO_CHECK = 3;
+const MAX_SUBPAGES = 2;
+
+// Link-text/href keyword groups used to find likely contact/quote/booking
+// subpages from the homepage nav — checked in this priority order per group.
+const CONTACT_PAGE_KEYWORDS = ["contact"];
+const BOOKING_PAGE_KEYWORDS = ["quote", "estimate", "book", "booking", "appointment"];
 // Real, billed Claude API calls — capped per search to keep cost predictable.
 // A fresh LiveWebsiteAnalyzer instance is created per search (see
 // getWebsiteAnalyzer() in index.ts), so this naturally scopes per search run.
@@ -108,37 +117,41 @@ export class LiveWebsiteAnalyzer implements WebsiteAnalyzer {
     const rawHtmlLower = html.toLowerCase();
 
     const hasObviousBrokenLinks = await this.checkForBrokenLinks($, finalUrl);
+    let mergedChecks = computePageChecks($, html, bodyText, rawHtmlLower);
+    let contact = extractContactInfo($, finalUrl);
+
+    // Check a couple of likely subpages (contact, quote/booking) — a
+    // form or booking widget often lives there rather than the homepage.
+    const subpageUrls = findSubpageLinks($, finalUrl);
+    const subpageResults = await Promise.allSettled(
+      subpageUrls.map((subUrl) => this.fetchPage(subUrl, SUBPAGE_FETCH_TIMEOUT_MS))
+    );
+
+    for (const result of subpageResults) {
+      if (result.status !== "fulfilled" || !result.value.isHtml) continue;
+      const sub$ = cheerio.load(result.value.html);
+      const subBodyText = sub$("body").text().replace(/\s+/g, " ").toLowerCase();
+      const subRawHtmlLower = result.value.html.toLowerCase();
+      mergedChecks = orMergeChecks(
+        mergedChecks,
+        computePageChecks(sub$, result.value.html, subBodyText, subRawHtmlLower)
+      );
+      if (!contact.email || !contact.facebookUrl || !contact.instagramUrl) {
+        const subContact = extractContactInfo(sub$, result.value.finalUrl);
+        contact = {
+          email: contact.email ?? subContact.email,
+          facebookUrl: contact.facebookUrl ?? subContact.facebookUrl,
+          instagramUrl: contact.instagramUrl ?? subContact.instagramUrl,
+        };
+      }
+    }
 
     const objective: ObjectiveWebsiteChecks = {
       loadsSuccessfully: true,
       https: finalUrl.startsWith("https://"),
-      mobileResponsive: $('meta[name="viewport"]').length > 0,
-      hasObviousPhoneNumber: /(\+44\s?\d{2,4}|\(?0\d{2,4}\)?)[\s-]?\d{3,4}[\s-]?\d{3,4}/.test(
-        bodyText
-      ),
-      hasClickToCallLink: $('a[href^="tel:"]').length > 0,
-      hasClearPrimaryCTA: containsAny(bodyText, CTA_PHRASES) || hasCtaElement($),
-      hasContactForm: hasContactFormEl($),
-      hasQuoteOrEstimateForm:
-        (hasContactFormEl($) && /quote|estimate/.test(bodyText)) ||
-        /request a quote|get a quote|free estimate/.test(bodyText),
-      hasOnlineBooking: containsAny(bodyText, BOOKING_KEYWORDS) || containsAny(rawHtmlLower, BOOKING_KEYWORDS),
-      hasLiveChat: containsAny(rawHtmlLower, LIVE_CHAT_PATTERNS),
-      hasTestimonialsOrReviews:
-        /testimonial|what our customers say|5[\s-]?star|customer review/.test(bodyText) ||
-        $('[itemtype*="Review"], [itemtype*="AggregateRating"]').length > 0,
-      hasRecentProjectGallery:
-        /gallery|portfolio|our work|recent projects|case studies|before and after/.test(bodyText) &&
-        $("img").length > 4,
-      hasServicesListed: /our services|services we offer|what we do/.test(bodyText) ||
-        $('a, nav *').filter((_, el) => /^services?$/i.test($(el).text().trim())).length > 0,
-      hasServiceAreasStated: /areas we cover|service area|areas covered|covering the|we cover/.test(
-        bodyText
-      ),
-      hasSocialLinks: SOCIAL_DOMAINS.some((d) => $(`a[href*="${d}"]`).length > 0),
-      outdatedCopyrightYear: isOutdatedCopyright(bodyText + " " + rawHtmlLower),
       hasObviousBrokenLinks,
       weakOrDatedDesignIndicators: false, // computed below once other checks are known
+      ...mergedChecks,
     };
 
     objective.weakOrDatedDesignIndicators = computeWeakDesignIndicator($, objective, html);
@@ -146,7 +159,6 @@ export class LiveWebsiteAnalyzer implements WebsiteAnalyzer {
     const score = computeWebsiteScore(objective);
     const status = statusFromScore(score);
     const summary = buildSummary(status, objective);
-    const contact = extractContactInfo($, finalUrl);
     const subjective = this.tryConsumeAiCall()
       ? await assessDesignQuality({
           url: finalUrl,
@@ -175,10 +187,11 @@ export class LiveWebsiteAnalyzer implements WebsiteAnalyzer {
   }
 
   private async fetchPage(
-    url: string
+    url: string,
+    timeoutMs: number = FETCH_TIMEOUT_MS
   ): Promise<{ html: string; finalUrl: string; isHtml: boolean }> {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
     try {
       const res = await fetch(url, {
@@ -291,6 +304,105 @@ function falseChecks(): ObjectiveWebsiteChecks {
     hasObviousBrokenLinks: false,
     weakOrDatedDesignIndicators: false,
   };
+}
+
+// Checks that are meaningful per-page and get OR-merged across the
+// homepage + subpages. loadsSuccessfully/https/hasObviousBrokenLinks/
+// weakOrDatedDesignIndicators are site-level, computed once from the
+// homepage only.
+type PageChecks = Omit<
+  ObjectiveWebsiteChecks,
+  "loadsSuccessfully" | "https" | "hasObviousBrokenLinks" | "weakOrDatedDesignIndicators"
+>;
+
+function computePageChecks(
+  $: cheerio.CheerioAPI,
+  html: string,
+  bodyText: string,
+  rawHtmlLower: string
+): PageChecks {
+  return {
+    mobileResponsive: $('meta[name="viewport"]').length > 0,
+    hasObviousPhoneNumber: /(\+44\s?\d{2,4}|\(?0\d{2,4}\)?)[\s-]?\d{3,4}[\s-]?\d{3,4}/.test(bodyText),
+    hasClickToCallLink: $('a[href^="tel:"]').length > 0,
+    hasClearPrimaryCTA: containsAny(bodyText, CTA_PHRASES) || hasCtaElement($),
+    hasContactForm: hasContactFormEl($),
+    hasQuoteOrEstimateForm:
+      (hasContactFormEl($) && /quote|estimate/.test(bodyText)) ||
+      /request a quote|get a quote|free estimate/.test(bodyText),
+    hasOnlineBooking: containsAny(bodyText, BOOKING_KEYWORDS) || containsAny(rawHtmlLower, BOOKING_KEYWORDS),
+    hasLiveChat: containsAny(rawHtmlLower, LIVE_CHAT_PATTERNS),
+    hasTestimonialsOrReviews:
+      /testimonial|what our customers say|5[\s-]?star|customer review/.test(bodyText) ||
+      $('[itemtype*="Review"], [itemtype*="AggregateRating"]').length > 0,
+    hasRecentProjectGallery:
+      /gallery|portfolio|our work|recent projects|case studies|before and after/.test(bodyText) &&
+      $("img").length > 4,
+    hasServicesListed:
+      /our services|services we offer|what we do/.test(bodyText) ||
+      $("a, nav *").filter((_, el) => /^services?$/i.test($(el).text().trim())).length > 0,
+    hasServiceAreasStated: /areas we cover|service area|areas covered|covering the|we cover/.test(bodyText),
+    hasSocialLinks: SOCIAL_DOMAINS.some((d) => $(`a[href*="${d}"]`).length > 0),
+    outdatedCopyrightYear: isOutdatedCopyright(bodyText + " " + rawHtmlLower),
+  };
+}
+
+function orMergeChecks(a: PageChecks, b: PageChecks): PageChecks {
+  const merged = { ...a };
+  for (const key of Object.keys(b) as (keyof PageChecks)[]) {
+    merged[key] = a[key] || b[key];
+  }
+  return merged;
+}
+
+// Finds up to MAX_SUBPAGES likely subpage URLs from the homepage nav: one
+// contact-ish page, one quote/booking-ish page. Same-origin only.
+function findSubpageLinks($: cheerio.CheerioAPI, baseUrl: string): string[] {
+  let base: URL;
+  try {
+    base = new URL(baseUrl);
+  } catch {
+    return [];
+  }
+
+  const found: string[] = [];
+  const seen = new Set<string>([base.toString()]);
+
+  function findFirstMatching(keywords: string[]): string | null {
+    let match: string | null = null;
+    $("a[href]").each((_, el) => {
+      if (match) return;
+      const href = $(el).attr("href");
+      if (!href || href.startsWith("mailto:") || href.startsWith("tel:") || href.startsWith("#")) return;
+      const text = $(el).text().trim().toLowerCase();
+      const hrefLower = href.toLowerCase();
+      if (!keywords.some((k) => text.includes(k) || hrefLower.includes(k))) return;
+      try {
+        const resolved = new URL(href, base);
+        if (resolved.hostname !== base.hostname) return;
+        const key = resolved.toString();
+        if (seen.has(key)) return;
+        match = key;
+      } catch {
+        // ignore unparsable hrefs
+      }
+    });
+    return match;
+  }
+
+  const contactUrl = findFirstMatching(CONTACT_PAGE_KEYWORDS);
+  if (contactUrl) {
+    found.push(contactUrl);
+    seen.add(contactUrl);
+  }
+
+  const bookingUrl = findFirstMatching(BOOKING_PAGE_KEYWORDS);
+  if (bookingUrl) {
+    found.push(bookingUrl);
+    seen.add(bookingUrl);
+  }
+
+  return found.slice(0, MAX_SUBPAGES);
 }
 
 function containsAny(haystack: string, needles: string[]): boolean {
