@@ -11,12 +11,17 @@ export function Hero({ ctx, variant }: { ctx: DemoRenderContext; variant: HeroVa
   const heading = (
     <>
       {ctx.copy.hero_eyebrow && (
-        <p className="mb-3 text-sm font-semibold uppercase tracking-wide text-[var(--demo-accent)]">
+        <p className="mb-4 text-xs font-semibold uppercase tracking-[0.15em] text-[var(--demo-accent)]">
           {ctx.copy.hero_eyebrow}
         </p>
       )}
-      <h1 className="text-4xl font-bold text-[var(--demo-text)] sm:text-5xl">{ctx.copy.hero_headline}</h1>
-      <p className="mt-4 max-w-xl text-lg text-[var(--demo-text-muted)]">{ctx.copy.hero_supporting_text}</p>
+      <h1
+        style={{ fontFamily: "var(--demo-font-heading)" }}
+        className="text-5xl font-normal leading-[1.1] text-[var(--demo-text)] sm:text-6xl"
+      >
+        {ctx.copy.hero_headline}
+      </h1>
+      <p className="mt-5 max-w-xl text-lg text-[var(--demo-text-muted)]">{ctx.copy.hero_supporting_text}</p>
       <div className="mt-8 flex flex-wrap gap-3">
         {phone ? (
           <PrimaryButton href={phoneHref(phone)}>{ctx.copy.primary_cta}</PrimaryButton>

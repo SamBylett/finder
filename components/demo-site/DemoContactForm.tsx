@@ -52,7 +52,7 @@ export function DemoContactForm({ productionMode = false }: { productionMode?: b
       />
       <button
         type="submit"
-        className="w-full rounded-[var(--demo-radius)] bg-[var(--demo-accent)] px-4 py-2.5 text-sm font-semibold text-[var(--demo-accent-text)] hover:bg-[var(--demo-accent-hover)]"
+        className="w-full rounded-[var(--demo-radius)] bg-[var(--demo-accent)] px-4 py-3 text-xs font-semibold uppercase tracking-[0.1em] text-[var(--demo-accent-text)] hover:bg-[var(--demo-accent-hover)]"
       >
         Get a quote
       </button>

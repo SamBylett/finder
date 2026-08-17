@@ -19,8 +19,11 @@ export function Services({ ctx, variant }: { ctx: DemoRenderContext; variant: Se
               <div key={c.name} className={`flex flex-col gap-6 md:flex-row md:items-center ${i % 2 === 1 ? "md:flex-row-reverse" : ""}`}>
                 <DemoAssetImage asset={galleryAssets[i % Math.max(galleryAssets.length, 1)]} alt={c.name} className="aspect-video w-full rounded-[var(--demo-radius)] object-cover md:w-1/2" />
                 <div className="md:w-1/2">
-                  <h3 className="text-xl font-semibold text-[var(--demo-text)]">{c.name}</h3>
-                  <p className="mt-2 text-[var(--demo-text-muted)]">{c.description}</p>
+                  <h3 style={{ fontFamily: "var(--demo-font-heading)" }} className="text-2xl font-normal text-[var(--demo-text)]">
+                    {c.name}
+                  </h3>
+                  <div className="mt-3 mb-3 h-px w-8 bg-[var(--demo-border)]" />
+                  <p className="text-[var(--demo-text-muted)]">{c.description}</p>
                 </div>
               </div>
             ))}
@@ -33,7 +36,9 @@ export function Services({ ctx, variant }: { ctx: DemoRenderContext; variant: Se
               <div key={c.name} className="overflow-hidden rounded-[var(--demo-radius)] border border-[var(--demo-border)] bg-[var(--demo-surface)]">
                 <DemoAssetImage asset={galleryAssets[i % Math.max(galleryAssets.length, 1)]} alt={c.name} className="aspect-video w-full object-cover" />
                 <div className="p-5">
-                  <h3 className="font-semibold text-[var(--demo-text)]">{c.name}</h3>
+                  <h3 style={{ fontFamily: "var(--demo-font-heading)" }} className="text-lg font-normal text-[var(--demo-text)]">
+                    {c.name}
+                  </h3>
                   <p className="mt-1 text-sm text-[var(--demo-text-muted)]">{c.description}</p>
                 </div>
               </div>
@@ -45,7 +50,9 @@ export function Services({ ctx, variant }: { ctx: DemoRenderContext; variant: Se
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {cards.map((c) => (
               <div key={c.name} className="rounded-[var(--demo-radius)] border border-[var(--demo-border)] p-4">
-                <h3 className="font-semibold text-[var(--demo-text)]">{c.name}</h3>
+                <h3 style={{ fontFamily: "var(--demo-font-heading)" }} className="text-base font-normal text-[var(--demo-text)]">
+                  {c.name}
+                </h3>
                 <p className="mt-1 text-xs text-[var(--demo-text-muted)]">{c.description}</p>
               </div>
             ))}
@@ -56,7 +63,9 @@ export function Services({ ctx, variant }: { ctx: DemoRenderContext; variant: Se
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {cards.map((c) => (
               <div key={c.name} className="rounded-[var(--demo-radius)] bg-[var(--demo-surface)] p-6 shadow-[var(--demo-shadow)]">
-                <h3 className="font-semibold text-[var(--demo-text)]">{c.name}</h3>
+                <h3 style={{ fontFamily: "var(--demo-font-heading)" }} className="text-xl font-normal text-[var(--demo-text)]">
+                  {c.name}
+                </h3>
                 <p className="mt-2 text-sm text-[var(--demo-text-muted)]">{c.description}</p>
               </div>
             ))}

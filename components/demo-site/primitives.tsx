@@ -47,12 +47,16 @@ export function SectionHeading({ eyebrow, heading, subheading }: { eyebrow?: str
   return (
     <div className="mb-10 max-w-2xl">
       {eyebrow && (
-        <p className="mb-2 text-sm font-semibold uppercase tracking-wide text-[var(--demo-accent)]">{eyebrow}</p>
+        <p className="mb-3 text-xs font-semibold uppercase tracking-[0.15em] text-[var(--demo-accent)]">{eyebrow}</p>
       )}
-      <h2 className="text-3xl font-bold text-[var(--demo-text)] sm:text-4xl">
+      <h2
+        style={{ fontFamily: "var(--demo-font-heading)" }}
+        className="text-4xl font-normal leading-tight text-[var(--demo-text)] sm:text-5xl"
+      >
         {heading}
       </h2>
-      {subheading && <p className="mt-3 text-[var(--demo-text-muted)]">{subheading}</p>}
+      <div className="mt-4 h-px w-10 bg-[var(--demo-accent)]" />
+      {subheading && <p className="mt-4 text-[var(--demo-text-muted)]">{subheading}</p>}
     </div>
   );
 }
@@ -61,7 +65,7 @@ export function PrimaryButton({ href, children }: { href: string; children: Reac
   return (
     <a
       href={href}
-      className="inline-flex items-center justify-center rounded-[var(--demo-radius)] bg-[var(--demo-accent)] px-6 py-3 text-sm font-semibold text-[var(--demo-accent-text)] transition hover:bg-[var(--demo-accent-hover)]"
+      className="inline-flex items-center justify-center rounded-[var(--demo-radius)] bg-[var(--demo-accent)] px-7 py-3.5 text-xs font-semibold uppercase tracking-[0.1em] text-[var(--demo-accent-text)] transition hover:bg-[var(--demo-accent-hover)]"
     >
       {children}
     </a>
@@ -72,7 +76,7 @@ export function SecondaryButton({ href, children }: { href: string; children: Re
   return (
     <a
       href={href}
-      className="inline-flex items-center justify-center rounded-[var(--demo-radius)] border border-[var(--demo-border)] px-6 py-3 text-sm font-semibold text-[var(--demo-text)] transition hover:bg-[var(--demo-surface)]"
+      className="inline-flex items-center justify-center rounded-[var(--demo-radius)] border border-[var(--demo-border)] px-7 py-3.5 text-xs font-semibold uppercase tracking-[0.1em] text-[var(--demo-text)] transition hover:bg-[var(--demo-surface)]"
     >
       {children}
     </a>

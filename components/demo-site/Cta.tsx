@@ -14,7 +14,7 @@ export function Cta({ ctx, variant }: { ctx: DemoRenderContext; variant: CtaVari
         <DemoAssetImage asset={asset} alt="" className="absolute inset-0 h-full w-full object-cover" />
         <div className="absolute inset-0 bg-black/70" />
         <Container className="relative z-10 max-w-2xl text-center text-white">
-          <h2 className="text-3xl font-bold">{ctx.copy.final_cta_heading}</h2>
+          <h2 style={{ fontFamily: "var(--demo-font-heading)" }} className="text-4xl font-normal">{ctx.copy.final_cta_heading}</h2>
           <p className="mt-3 text-white/85">{ctx.copy.final_cta_body}</p>
           <div className="mt-8">
             <PrimaryButton href={href}>{ctx.copy.primary_cta}</PrimaryButton>
@@ -29,7 +29,7 @@ export function Cta({ ctx, variant }: { ctx: DemoRenderContext; variant: CtaVari
       <section className="border-t border-[var(--demo-border)] py-16">
         <Container className="flex flex-wrap items-center justify-between gap-6">
           <div>
-            <h2 className="text-2xl font-bold text-[var(--demo-text)]">{ctx.copy.final_cta_heading}</h2>
+            <h2 style={{ fontFamily: "var(--demo-font-heading)" }} className="text-3xl font-normal text-[var(--demo-text)]">{ctx.copy.final_cta_heading}</h2>
             <p className="mt-1 text-[var(--demo-text-muted)]">{ctx.copy.final_cta_body}</p>
           </div>
           <PrimaryButton href={href}>{ctx.copy.primary_cta}</PrimaryButton>
@@ -42,10 +42,10 @@ export function Cta({ ctx, variant }: { ctx: DemoRenderContext; variant: CtaVari
   return (
     <section className="bg-[var(--demo-accent)] py-16 text-[var(--demo-accent-text)]">
       <Container className="max-w-2xl text-center">
-        <h2 className="text-3xl font-bold">{ctx.copy.final_cta_heading}</h2>
+        <h2 style={{ fontFamily: "var(--demo-font-heading)" }} className="text-4xl font-normal">{ctx.copy.final_cta_heading}</h2>
         <p className="mt-3 opacity-90">{ctx.copy.final_cta_body}</p>
         <div className="mt-8">
-          <a href={href} className="inline-flex items-center justify-center rounded-[var(--demo-radius)] bg-[var(--demo-accent-text)] px-6 py-3 text-sm font-semibold text-[var(--demo-accent)]">
+          <a href={href} className="inline-flex items-center justify-center rounded-[var(--demo-radius)] bg-[var(--demo-accent-text)] px-7 py-3.5 text-xs font-semibold uppercase tracking-[0.1em] text-[var(--demo-accent)]">
             {ctx.copy.primary_cta}
           </a>
         </div>

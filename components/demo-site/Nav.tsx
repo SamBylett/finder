@@ -18,8 +18,8 @@ export function Nav({ ctx, variant }: { ctx: DemoRenderContext; variant: NavVari
       }`}
     >
       <Container className={`flex items-center justify-between ${compact ? "py-2" : "py-4"}`}>
-        <span className="text-lg font-bold">{name}</span>
-        <nav className="hidden gap-6 text-sm font-medium md:flex">
+        <span className="text-sm font-semibold uppercase tracking-[0.15em]">{name}</span>
+        <nav className="hidden gap-8 text-sm md:flex">
           {labels.map((label) => (
             <span key={label} className="opacity-80">{label}</span>
           ))}
