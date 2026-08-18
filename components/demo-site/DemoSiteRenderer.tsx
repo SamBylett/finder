@@ -8,7 +8,6 @@ import type { DemoRenderContext } from "@/lib/demo/render-context";
 import { themeCssVars } from "@/lib/demo/themes";
 import { Nav } from "./Nav";
 import { Hero } from "./Hero";
-import { TrustBar } from "./TrustBar";
 import { Services } from "./Services";
 import { Gallery } from "./Gallery";
 import { About } from "./About";
@@ -48,8 +47,6 @@ export function DemoSiteRenderer({
         switch (section.type) {
           case "hero":
             return <Hero key={i} ctx={ctx} variant={section.variant} />;
-          case "trust-bar":
-            return <TrustBar key={i} ctx={ctx} variant={section.variant} />;
           case "services":
             return <Services key={i} ctx={ctx} variant={section.variant} />;
           case "gallery":
@@ -65,7 +62,7 @@ export function DemoSiteRenderer({
           case "reviews":
             return <Reviews key={i} ctx={ctx} variant={section.variant} />;
           case "faq":
-            return <Faq key={i} ctx={ctx} />;
+            return <Faq key={i} ctx={ctx} variant={section.variant} />;
           case "cta":
             return <Cta key={i} ctx={ctx} variant={section.variant} />;
           case "contact":

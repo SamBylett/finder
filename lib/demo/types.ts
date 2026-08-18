@@ -213,24 +213,30 @@ export type PaletteId = "slate-blue" | "charcoal-gold" | "forest-neutral" | "nav
 
 export type NavVariant = "standard" | "transparent-overlay" | "compact";
 // Consolidated to 3 deliberately strong variants (was 5 weaker ones) — see
-// V2.2: "3 excellent hero variants beats 10 average ones".
+// V2.2: "3 excellent hero variants beats 10 average ones". Hero now also
+// carries the integrated trust/reputation line that used to be the
+// standalone TrustBar section (removed V2.4 — it was a cosmetic-only strip,
+// see composition.ts).
 export type HeroVariant = "cinematic" | "editorial-split" | "professional-authority";
-export type TrustBarVariant = "google-rating" | "review-stats" | "simple" | "professional";
 export type ServicesVariant = "editorial-rows" | "feature-panels" | "grid";
 export type GalleryVariant = "masonry" | "grid" | "featured-project";
 export type AboutVariant = "editorial" | "trust-led" | "compact-story";
-export type ReviewsVariant = "cards" | "featured-grid" | "simple-carousel";
-export type FaqVariant = "accordion";
+// Collapsed from 3 to 2 (V2.4) — the old "featured-grid"/"simple-carousel"
+// split rendered identical card markup, just a different wrapping class.
+export type ReviewsVariant = "featured" | "grid";
+// V2.4: a second, non-accordion variant for professional-services families
+// where an accordion reads as a generic SaaS-support-page pattern rather
+// than a considered part of the page.
+export type FaqVariant = "accordion" | "structured-list";
 export type CtaVariant = "full-width" | "image-background" | "simple" | "consultation";
 export type ContactVariant = "standard" | "split" | "compact";
 export type FooterVariant = "standard" | "compact";
 export type WhoWeHelpVariant = "audience-cards" | "simple-columns";
-export type ExpertiseVariant = "clean-list" | "cards";
+export type ExpertiseVariant = "clean-list" | "cards" | "editorial-list";
 export type ProcessVariant = "three-step" | "numbered";
 
 export type SectionConfig =
   | { type: "hero"; variant: HeroVariant }
-  | { type: "trust-bar"; variant: TrustBarVariant }
   | { type: "services"; variant: ServicesVariant }
   | { type: "gallery"; variant: GalleryVariant }
   | { type: "about"; variant: AboutVariant }
@@ -242,18 +248,43 @@ export type SectionConfig =
   | { type: "cta"; variant: CtaVariant }
   | { type: "contact"; variant: ContactVariant };
 
-// Deterministic, high-level shape of the site — chosen by pure logic (see
-// lib/demo/composition.ts), not by the AI. The AI Site Director picks
-// variants/theme/palette WITHIN this skeleton; it can't override the
-// structural decision of e.g. "this is a portfolio-led layout".
-export type CompositionStrategy =
-  | "trust_first" | "visual_first" | "service_first" | "conversion_first"
-  | "professional_authority" | "minimal_professional" | "portfolio_led";
+// V2.4 composition-family architecture (lib/demo/composition.ts). Replaces
+// CompositionStrategy, which only ever controlled which sections appear —
+// every family here also owns HOW those sections look (width/spacing/
+// typography/imagery/card usage), because the V2.4 design audit found that
+// once a section existed, it rendered through an identical shared shell
+// regardless of strategy. This is what makes composition genuinely affect
+// the browser output, not just section inclusion.
+export type CompositionFamily =
+  | "editorial_authority" | "boutique_advisory" | "modern_minimal" // professional services
+  | "project_first" | "local_authority" | "craft_premium"           // trades / home services
+  | "standard_local";                                               // generic/automotive fallback
+
+export type SectionWidth = "contained" | "wide" | "full-bleed";
+export type SpacingScale = "compact" | "standard" | "generous";
+export type TypographyEmphasis = "display" | "balanced";
+export type ImageDominance = "none" | "supporting" | "dominant";
+export type CardPolicy = "minimal" | "moderate" | "liberal";
+
+export interface CompositionProfile {
+  family: CompositionFamily;
+  // Per-section-type width override; a section type absent from this map
+  // uses "contained" (the previous universal behaviour) by default.
+  sectionWidth: Partial<Record<SectionConfig["type"], SectionWidth>>;
+  spacingScale: SpacingScale;
+  typographyEmphasis: TypographyEmphasis;
+  imageDominance: ImageDominance;
+  cardPolicy: CardPolicy;
+  // Default heading/content alignment for this family — editorial families
+  // read left-aligned; only modern_minimal and CTA-style moments centre.
+  align: "left" | "center";
+}
 
 export interface SiteDirectorConfig {
   industryFamily: IndustryFamily;
   businessArchetype: BusinessArchetype;
-  compositionStrategy: CompositionStrategy;
+  compositionFamily: CompositionFamily;
+  compositionProfile: CompositionProfile;
   contentDensity: ContentDensity;
   theme: ThemeId;
   palette: PaletteId;

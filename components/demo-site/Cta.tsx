@@ -1,6 +1,7 @@
 import type { DemoRenderContext } from "@/lib/demo/render-context";
 import { factValue } from "@/lib/demo/render-context";
-import { Container, DemoAssetImage, PrimaryButton, phoneHref } from "./primitives";
+import { DemoAssetImage, PrimaryButton, phoneHref } from "./primitives";
+import { Section } from "./section-primitives";
 import type { CtaVariant } from "@/lib/demo/types";
 
 export function Cta({ ctx, variant }: { ctx: DemoRenderContext; variant: CtaVariant }) {
@@ -13,60 +14,54 @@ export function Cta({ ctx, variant }: { ctx: DemoRenderContext; variant: CtaVari
       <section className="relative overflow-hidden py-24">
         <DemoAssetImage asset={asset} alt="" className="absolute inset-0 h-full w-full object-cover" />
         <div className="absolute inset-0 bg-black/70" />
-        <Container className="relative z-10 max-w-2xl text-center text-white">
+        <Section width="contained" spacing="compact" className="relative z-10 max-w-2xl text-center text-white">
           <h2 style={{ fontFamily: "var(--demo-font-heading)" }} className="text-4xl font-medium">{ctx.copy.final_cta_heading}</h2>
           <p className="mt-3 text-white/85">{ctx.copy.final_cta_body}</p>
           <div className="mt-8">
             <PrimaryButton href={href}>{ctx.copy.primary_cta}</PrimaryButton>
           </div>
-        </Container>
+        </Section>
       </section>
     );
   }
 
   if (variant === "consultation") {
     return (
-      <section className="border-t border-[var(--demo-border)] bg-[var(--demo-surface)] py-20">
-        <Container className="max-w-xl text-center">
-          <h2 style={{ fontFamily: "var(--demo-font-heading)" }} className="text-3xl font-medium text-[var(--demo-text)]">
-            {ctx.copy.final_cta_heading}
-          </h2>
-          <div className="mx-auto mt-4 h-px w-10 bg-[var(--demo-accent)]" />
-          <p className="mt-4 text-[var(--demo-text-muted)]">{ctx.copy.final_cta_body}</p>
-          <div className="mt-8 flex flex-wrap justify-center gap-3">
-            <PrimaryButton href={href}>{ctx.copy.primary_cta}</PrimaryButton>
-          </div>
-        </Container>
-      </section>
+      <Section spacing="standard" background="border-t border-[var(--demo-border)] bg-[var(--demo-surface)]" className="max-w-xl text-center">
+        <h2 style={{ fontFamily: "var(--demo-font-heading)" }} className="text-3xl font-medium text-[var(--demo-text)]">
+          {ctx.copy.final_cta_heading}
+        </h2>
+        <div className="mx-auto mt-4 h-px w-10 bg-[var(--demo-accent)]" />
+        <p className="mt-4 text-[var(--demo-text-muted)]">{ctx.copy.final_cta_body}</p>
+        <div className="mt-8 flex flex-wrap justify-center gap-3">
+          <PrimaryButton href={href}>{ctx.copy.primary_cta}</PrimaryButton>
+        </div>
+      </Section>
     );
   }
 
   if (variant === "simple") {
     return (
-      <section className="border-t border-[var(--demo-border)] py-16">
-        <Container className="flex flex-wrap items-center justify-between gap-6">
-          <div>
-            <h2 style={{ fontFamily: "var(--demo-font-heading)" }} className="text-3xl font-medium text-[var(--demo-text)]">{ctx.copy.final_cta_heading}</h2>
-            <p className="mt-1 text-[var(--demo-text-muted)]">{ctx.copy.final_cta_body}</p>
-          </div>
-          <PrimaryButton href={href}>{ctx.copy.primary_cta}</PrimaryButton>
-        </Container>
-      </section>
+      <Section spacing="compact" background="border-t border-[var(--demo-border)]" className="flex flex-wrap items-center justify-between gap-6">
+        <div>
+          <h2 style={{ fontFamily: "var(--demo-font-heading)" }} className="text-3xl font-medium text-[var(--demo-text)]">{ctx.copy.final_cta_heading}</h2>
+          <p className="mt-1 text-[var(--demo-text-muted)]">{ctx.copy.final_cta_body}</p>
+        </div>
+        <PrimaryButton href={href}>{ctx.copy.primary_cta}</PrimaryButton>
+      </Section>
     );
   }
 
   // full-width
   return (
-    <section className="bg-[var(--demo-accent)] py-16 text-[var(--demo-accent-text)]">
-      <Container className="max-w-2xl text-center">
-        <h2 style={{ fontFamily: "var(--demo-font-heading)" }} className="text-4xl font-medium">{ctx.copy.final_cta_heading}</h2>
-        <p className="mt-3 opacity-90">{ctx.copy.final_cta_body}</p>
-        <div className="mt-8">
-          <a href={href} className="inline-flex items-center justify-center rounded-[var(--demo-radius)] bg-[var(--demo-accent-text)] px-7 py-3.5 text-xs font-semibold uppercase tracking-[0.1em] text-[var(--demo-accent)]">
-            {ctx.copy.primary_cta}
-          </a>
-        </div>
-      </Container>
-    </section>
+    <Section spacing="compact" background="bg-[var(--demo-accent)] text-[var(--demo-accent-text)]" className="max-w-2xl text-center">
+      <h2 style={{ fontFamily: "var(--demo-font-heading)" }} className="text-4xl font-medium">{ctx.copy.final_cta_heading}</h2>
+      <p className="mt-3 opacity-90">{ctx.copy.final_cta_body}</p>
+      <div className="mt-8">
+        <a href={href} className="inline-flex items-center justify-center rounded-[var(--demo-radius)] bg-[var(--demo-accent-text)] px-7 py-3.5 text-xs font-semibold uppercase tracking-[0.1em] text-[var(--demo-accent)]">
+          {ctx.copy.primary_cta}
+        </a>
+      </div>
+    </Section>
   );
 }

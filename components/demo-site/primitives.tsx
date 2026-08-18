@@ -28,14 +28,14 @@ const PLACEHOLDER_GRADIENTS: Record<string, string> = {
 // the client's own work. `zoom` adds a restrained hover scale — parent must
 // have `overflow-hidden` (and ideally `group`) for it to read correctly.
 export function DemoAssetImage({
-  asset, className = "", alt, zoom = false,
-}: { asset: DemoAsset | undefined; className?: string; alt: string; zoom?: boolean }) {
+  asset, className = "", alt, zoom = false, style,
+}: { asset: DemoAsset | undefined; className?: string; alt: string; zoom?: boolean; style?: React.CSSProperties }) {
   if (!asset || asset.placeholder) {
     const label = asset?.url.split(":")[1] ?? "generic";
     return (
       <div
         className={`relative flex items-center justify-center overflow-hidden ${className}`}
-        style={{ background: PLACEHOLDER_GRADIENTS[label] ?? PLACEHOLDER_GRADIENTS.generic }}
+        style={{ background: PLACEHOLDER_GRADIENTS[label] ?? PLACEHOLDER_GRADIENTS.generic, ...style }}
       >
         <span className="rounded-full bg-black/30 px-3 py-1 text-xs font-medium tracking-wide text-white/80">
           Concept imagery
@@ -50,6 +50,7 @@ export function DemoAssetImage({
       src={asset.url}
       alt={alt}
       loading="lazy"
+      style={style}
       className={`${className} ${zoom ? "transition-transform duration-700 ease-out motion-safe:group-hover:scale-105" : ""}`}
     />
   );

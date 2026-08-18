@@ -1,6 +1,7 @@
 import type { DemoRenderContext } from "@/lib/demo/render-context";
 import { factValue } from "@/lib/demo/render-context";
-import { Container, SectionHeading } from "./primitives";
+import { SectionHeading } from "./primitives";
+import { Section, SplitContainer } from "./section-primitives";
 import { DemoContactForm } from "./DemoContactForm";
 import type { ContactVariant } from "@/lib/demo/types";
 
@@ -9,6 +10,7 @@ export function Contact({ ctx, variant }: { ctx: DemoRenderContext; variant: Con
   const email = factValue(ctx.profile.email);
   const address = factValue(ctx.profile.address);
   const townCity = factValue(ctx.profile.town_city);
+  const { spacingScale, align } = ctx.config.compositionProfile;
 
   // V2.3 location intelligence: only a premises-based business (confirmed
   // physical_location) shows its exact address/directions here — a
@@ -41,42 +43,41 @@ export function Contact({ ctx, variant }: { ctx: DemoRenderContext; variant: Con
 
   if (variant === "compact") {
     return (
-      <section id="contact" className="bg-[var(--demo-surface)] py-16">
-        <Container className="max-w-xl text-center">
-          <SectionHeading heading="Get in touch" subheading={ctx.copy.contact_content} />
-          {details}
-          {directions}
-        </Container>
-      </section>
+      <Section id="contact" spacing="compact" background="bg-[var(--demo-surface)]" className="max-w-xl text-center">
+        <SectionHeading heading="Get in touch" subheading={ctx.copy.contact_content} align="center" />
+        {details}
+        {directions}
+      </Section>
     );
   }
 
   if (variant === "split") {
     return (
-      <section id="contact" className="bg-[var(--demo-surface)] py-20">
-        <Container className="grid gap-10 md:grid-cols-2">
-          <div>
-            <SectionHeading heading="Get in touch" subheading={ctx.copy.contact_content} />
-            {details}
-            {directions}
-          </div>
-          <DemoContactForm archetype={ctx.profile.business_archetype} />
-        </Container>
-      </section>
+      <Section id="contact" spacing={spacingScale} background="bg-[var(--demo-surface)]">
+        <SplitContainer
+          ratio="1:1"
+          left={
+            <div>
+              <SectionHeading heading="Get in touch" subheading={ctx.copy.contact_content} align={align} />
+              {details}
+              {directions}
+            </div>
+          }
+          right={<DemoContactForm archetype={ctx.profile.business_archetype} />}
+        />
+      </Section>
     );
   }
 
   // standard
   return (
-    <section id="contact" className="bg-[var(--demo-surface)] py-20">
-      <Container className="max-w-xl">
-        <SectionHeading heading="Get in touch" subheading={ctx.copy.contact_content} />
-        {details}
-        {directions}
-        <div className="mt-6">
-          <DemoContactForm archetype={ctx.profile.business_archetype} />
-        </div>
-      </Container>
-    </section>
+    <Section id="contact" spacing={spacingScale} background="bg-[var(--demo-surface)]" className="max-w-xl">
+      <SectionHeading heading="Get in touch" subheading={ctx.copy.contact_content} align={align} />
+      {details}
+      {directions}
+      <div className="mt-6">
+        <DemoContactForm archetype={ctx.profile.business_archetype} />
+      </div>
+    </Section>
   );
 }

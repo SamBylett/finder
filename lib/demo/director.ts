@@ -8,14 +8,14 @@
 // deterministic config so rendering never depends entirely on AI.
 
 import Anthropic from "@anthropic-ai/sdk";
-import { chooseCompositionStrategy, chooseContentDensity, sectionSkeleton } from "./composition";
+import { chooseCompositionFamily, chooseContentDensity, compositionProfile } from "./composition";
 import { archetypeMeta } from "./industry";
 import { describeProfileForPrompt } from "./prompt-context";
 import { fallbackSiteDirectorConfig } from "./fallback-config";
 import { applyDeterministicGuardrails } from "./guardrails";
 import { applyPremiumDesignDirector } from "./premium-director";
 import type {
-  DemoAsset, DemoBusinessProfile, DemoReview, PaletteId, SectionConfig, SiteDirectorConfig, ThemeId, WebsiteStrategy,
+  DemoAsset, DemoBusinessProfile, DemoReview, PaletteId, SectionConfig, SiteDirectorConfig, ThemeId, WebsiteCopy, WebsiteStrategy,
 } from "./types";
 
 const MODEL = "claude-sonnet-5";
@@ -29,15 +29,14 @@ const FOOTER_VARIANTS = ["standard", "compact"] as const;
 // options beats 10 average ones") rather than exhaustive coverage.
 const SECTION_VARIANTS: Record<SectionConfig["type"], readonly string[]> = {
   hero: ["cinematic", "editorial-split", "professional-authority"],
-  "trust-bar": ["google-rating", "review-stats", "simple", "professional"],
   services: ["editorial-rows", "feature-panels", "grid"],
   gallery: ["masonry", "grid", "featured-project"],
   about: ["editorial", "trust-led", "compact-story"],
   "who-we-help": ["audience-cards", "simple-columns"],
-  expertise: ["clean-list", "cards"],
+  expertise: ["clean-list", "cards", "editorial-list"],
   process: ["three-step", "numbered"],
-  reviews: ["cards", "featured-grid", "simple-carousel"],
-  faq: ["accordion"],
+  reviews: ["featured", "grid"],
+  faq: ["accordion", "structured-list"],
   cta: ["full-width", "image-background", "simple", "consultation"],
   contact: ["standard", "split", "compact"],
 };
@@ -100,16 +99,17 @@ export async function runSiteDirector(
   profile: DemoBusinessProfile,
   strategy: WebsiteStrategy,
   assets: DemoAsset[],
-  reviews: DemoReview[]
+  reviews: DemoReview[],
+  copy: WebsiteCopy
 ): Promise<{ config: SiteDirectorConfig; usedFallback: boolean }> {
-  const compositionStrategy = chooseCompositionStrategy(profile, assets, reviews.length);
+  const compositionFamily = chooseCompositionFamily(profile, assets, reviews.length);
   const contentDensity = chooseContentDensity(profile);
-  const skeleton = sectionSkeleton(compositionStrategy, contentDensity);
+  const { profile: compProfile, sections: skeleton } = compositionProfile(compositionFamily, contentDensity);
   const meta = archetypeMeta(profile.business_archetype);
   const fallback = fallbackSiteDirectorConfig(profile, assets, reviews.length);
 
   if (!process.env.ANTHROPIC_API_KEY) {
-    return { config: applyPremiumDesignDirector(fallback, profile), usedFallback: true };
+    return { config: applyPremiumDesignDirector(fallback, profile, copy, reviews), usedFallback: true };
   }
 
   try {
@@ -127,7 +127,7 @@ export async function runSiteDirector(
             `section in that fixed structure, plus an overall theme/palette/nav/footer. You do NOT write code or CSS and ` +
             `you CANNOT add, remove, or reorder sections.\n\n` +
             `Business data:\n${describeProfileForPrompt(profile)}\n\n` +
-            `Composition strategy already chosen: ${compositionStrategy}\n` +
+            `Composition family already chosen: ${compositionFamily}\n` +
             `Fixed section order (in this exact order, you only choose each one's variant): ${skeleton.join(" -> ")}\n\n` +
             `Strategy: tone=${strategy.tone}, visual direction=${strategy.visual_direction}, ` +
             `messaging angle=${strategy.messaging_angle}\n` +
@@ -146,19 +146,20 @@ export async function runSiteDirector(
       ],
     });
 
-    if (response.stop_reason === "refusal") return { config: applyPremiumDesignDirector(fallback, profile), usedFallback: true };
+    if (response.stop_reason === "refusal") return { config: applyPremiumDesignDirector(fallback, profile, copy, reviews), usedFallback: true };
 
     const textBlock = response.content.find((b) => b.type === "text");
-    if (!textBlock || textBlock.type !== "text") return { config: applyPremiumDesignDirector(fallback, profile), usedFallback: true };
+    if (!textBlock || textBlock.type !== "text") return { config: applyPremiumDesignDirector(fallback, profile, copy, reviews), usedFallback: true };
 
     const parsed = JSON.parse(textBlock.text);
     const validated = isValidResponse(parsed, skeleton);
-    if (!validated) return { config: applyPremiumDesignDirector(fallback, profile), usedFallback: true };
+    if (!validated) return { config: applyPremiumDesignDirector(fallback, profile, copy, reviews), usedFallback: true };
 
     const config: SiteDirectorConfig = {
       industryFamily: profile.industry_family,
       businessArchetype: profile.business_archetype,
-      compositionStrategy,
+      compositionFamily,
+      compositionProfile: compProfile,
       contentDensity,
       theme: validated.theme,
       palette: validated.palette,
@@ -167,8 +168,8 @@ export async function runSiteDirector(
       sections: validated.sections,
     };
 
-    return { config: applyPremiumDesignDirector(applyDeterministicGuardrails(config, profile, assets), profile), usedFallback: false };
+    return { config: applyPremiumDesignDirector(applyDeterministicGuardrails(config, profile, assets), profile, copy, reviews), usedFallback: false };
   } catch {
-    return { config: applyPremiumDesignDirector(fallback, profile), usedFallback: true };
+    return { config: applyPremiumDesignDirector(fallback, profile, copy, reviews), usedFallback: true };
   }
 }

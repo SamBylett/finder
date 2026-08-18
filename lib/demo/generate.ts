@@ -101,7 +101,7 @@ export async function buildDemo(business: Business): Promise<Demo> {
     await saveDemo(demo);
 
     const reviews = buildDemoReviews();
-    const { config } = await runSiteDirector(finalProfile, strategy, assets, reviews);
+    const { config } = await runSiteDirector(finalProfile, strategy, assets, reviews, copy);
     const qualityCheck = runDemoQualityCheck(finalProfile, copy, config, assets);
     const presentationReview = await runPresentationQualityReview(finalProfile, copy, config);
     const sendReadiness = computeSendReadiness(qualityCheck, presentationReview);
@@ -151,10 +151,11 @@ export async function regenerateDemoStage(demo: Demo, stage: RegenerateStage): P
       updated = { ...updated, website_copy: copy };
     } else if (stage === "director") {
       if (!demo.website_strategy) throw new Error("Cannot re-run the Site Director without a website strategy.");
+      if (!demo.website_copy) throw new Error("Cannot re-run the Site Director without website copy.");
       const { getDemoAssets } = await import("./store");
       const assets = await getDemoAssets(demo.id);
       const reviews = await getDemoReviews(demo.id);
-      const { config } = await runSiteDirector(demo.business_profile, demo.website_strategy, assets, reviews);
+      const { config } = await runSiteDirector(demo.business_profile, demo.website_strategy, assets, reviews, demo.website_copy);
       updated = { ...updated, site_director_config: config };
     }
 

@@ -2,12 +2,13 @@
 // unavailable, or returns invalid/unsupported JSON. Website generation must
 // never depend entirely on AI. Built from the SAME composition engine the
 // real director uses (composition.ts) so a fallback demo is still properly
-// differentiated by archetype/composition/density, not one generic template.
+// differentiated by archetype/composition-family/density, not one generic
+// template.
 
-import { chooseCompositionStrategy, chooseContentDensity, sectionSkeleton } from "./composition";
+import { chooseCompositionFamily, chooseContentDensity, compositionProfile } from "./composition";
 import { archetypeMeta } from "./industry";
 import type {
-  CompositionStrategy, DemoAsset, DemoBusinessProfile, HeroVariant, PaletteId, SectionConfig, SiteDirectorConfig, ThemeId,
+  CompositionFamily, DemoAsset, DemoBusinessProfile, HeroVariant, PaletteId, SectionConfig, SiteDirectorConfig, ThemeId,
 } from "./types";
 
 const FAMILY_THEME: Record<string, { theme: ThemeId; palette: PaletteId }> = {
@@ -18,45 +19,39 @@ const FAMILY_THEME: Record<string, { theme: ThemeId; palette: PaletteId }> = {
   generic_local_service: { theme: "clean-light", palette: "slate-blue" },
 };
 
-function defaultHeroVariant(strategy: CompositionStrategy): HeroVariant {
-  switch (strategy) {
-    case "professional_authority":
-    case "minimal_professional":
-      return "professional-authority";
-    case "portfolio_led":
-    case "visual_first":
-      return "cinematic";
-    default:
-      return "editorial-split";
-  }
+const PROFESSIONAL_FAMILIES: CompositionFamily[] = ["editorial_authority", "boutique_advisory", "modern_minimal"];
+
+function defaultHeroVariant(family: CompositionFamily): HeroVariant {
+  if (PROFESSIONAL_FAMILIES.includes(family)) return "professional-authority";
+  if (family === "project_first" || family === "craft_premium") return "cinematic";
+  return "editorial-split";
 }
 
-function defaultVariant(type: SectionConfig["type"], strategy: CompositionStrategy, serviceCount: number): SectionConfig {
+function defaultVariant(type: SectionConfig["type"], family: CompositionFamily, serviceCount: number): SectionConfig {
+  const professional = PROFESSIONAL_FAMILIES.includes(family);
   switch (type) {
     case "hero":
-      return { type, variant: defaultHeroVariant(strategy) };
-    case "trust-bar":
-      return { type, variant: strategy === "professional_authority" || strategy === "minimal_professional" ? "professional" : "google-rating" };
+      return { type, variant: defaultHeroVariant(family) };
     case "services":
       if (serviceCount >= 5) return { type, variant: "grid" };
       if (serviceCount <= 2) return { type, variant: "feature-panels" };
       return { type, variant: "editorial-rows" };
     case "gallery":
-      return { type, variant: strategy === "portfolio_led" ? "masonry" : "grid" };
+      return { type, variant: family === "project_first" || family === "craft_premium" ? "masonry" : "grid" };
     case "about":
-      return { type, variant: strategy === "minimal_professional" ? "compact-story" : "trust-led" };
+      return { type, variant: family === "modern_minimal" ? "compact-story" : "trust-led" };
     case "who-we-help":
       return { type, variant: "simple-columns" };
     case "expertise":
-      return { type, variant: "clean-list" };
+      return { type, variant: professional ? "editorial-list" : "clean-list" };
     case "process":
       return { type, variant: "three-step" };
     case "reviews":
-      return { type, variant: "cards" };
+      return { type, variant: professional ? "featured" : "grid" };
     case "faq":
-      return { type, variant: "accordion" };
+      return { type, variant: professional ? "structured-list" : "accordion" };
     case "cta":
-      return { type, variant: strategy === "professional_authority" || strategy === "minimal_professional" ? "consultation" : "simple" };
+      return { type, variant: professional ? "consultation" : "simple" };
     case "contact":
       return { type, variant: "standard" };
   }
@@ -67,21 +62,22 @@ export function fallbackSiteDirectorConfig(
   assets: DemoAsset[],
   reviewTextCount: number
 ): SiteDirectorConfig {
-  const strategy = chooseCompositionStrategy(profile, assets, reviewTextCount);
+  const family = chooseCompositionFamily(profile, assets, reviewTextCount);
   const density = chooseContentDensity(profile);
-  const skeleton = sectionSkeleton(strategy, density);
+  const { profile: compProfile, sections: skeleton } = compositionProfile(family, density);
   const { theme, palette } = FAMILY_THEME[profile.industry_family] ?? FAMILY_THEME.generic_local_service;
   const serviceCount = Math.max(profile.confirmed_services.length, 1);
 
   return {
     industryFamily: profile.industry_family,
     businessArchetype: profile.business_archetype,
-    compositionStrategy: strategy,
+    compositionFamily: family,
+    compositionProfile: compProfile,
     contentDensity: density,
     theme,
     palette,
     navVariant: "standard",
     footerVariant: archetypeMeta(profile.business_archetype).professionalSections ? "compact" : "standard",
-    sections: skeleton.map((type) => defaultVariant(type, strategy, serviceCount)),
+    sections: skeleton.map((type) => defaultVariant(type, family, serviceCount)),
   };
 }

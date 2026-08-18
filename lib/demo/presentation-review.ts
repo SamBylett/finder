@@ -85,8 +85,8 @@ export async function runPresentationQualityReview(
             `You are reviewing a speculative demo website's STRUCTURE and COPY (not rendered HTML) to judge whether it would ` +
             `convincingly look like a professionally designed £1,000-3,000 local-business website, or whether it reads as an ` +
             `AI-generated template. This is for "${profile.business_name.value}", a ${meta.marketingCategoryLabel} business.\n\n` +
-            `Data richness tier: ${profile.content_richness} (score ${profile.data_richness_score}/100). Composition strategy: ` +
-            `${config.compositionStrategy}. Section order/variants: ${sectionSummary}. Card-shaped sections: ${cardShapedSections}.\n\n` +
+            `Data richness tier: ${profile.content_richness} (score ${profile.data_richness_score}/100). Composition family: ` +
+            `${config.compositionFamily}. Section order/variants: ${sectionSummary}. Card-shaped sections: ${cardShapedSections}.\n\n` +
             `Copy (JSON):\n${JSON.stringify(copy, null, 2)}\n\n` +
             `IMPORTANT: judge appropriateness for the available data, not feature count. A concise 4-6 section site for a ` +
             `SPARSE business that uses everything confirmed well should score HIGH. A longer site for a RICH business that ` +
