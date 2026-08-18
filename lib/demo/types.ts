@@ -338,6 +338,56 @@ export interface PresentationQualityReview {
 
 export type SendReadiness = "READY_TO_SEND" | "NEEDS_VISUAL_REVIEW" | "NOT_READY";
 
+// V2.5: lightweight tracking for the Lovable-centric workflow (discover ->
+// qualify -> enrich -> prioritise -> prepare Lovable brief -> build manually
+// -> send outreach manually). Deliberately NOT a CRM — no automatic
+// transitions except BRIEF_READY (on brief generation) and DEMO_READY (on
+// attaching a demo_url); every other transition is a manual dropdown choice.
+// Independent of DemoStatus, which still describes the OLD internal-renderer
+// pipeline (unchanged, kept for reference/testing use of that renderer).
+export type WorkflowStatus =
+  | "NOT_STARTED"
+  | "BRIEF_READY"
+  | "BUILDING_IN_LOVABLE"
+  | "DEMO_READY"
+  | "SENT"
+  | "RESPONDED"
+  | "INTERESTED"
+  | "NOT_INTERESTED";
+
+export type DemoBuilder = "LOVABLE" | "INTERNAL";
+
+// Structured output of the Lovable prompt-generation AI call
+// (lib/demo/lovable-prompt.ts) — shown as readable cards in the Demo Prep
+// UI, with full_prompt being the single paste-ready string. Never contains
+// facts beyond what describeProfileForPrompt() supplied — see the
+// factual_guardrails field, which the prompt explicitly asks the model to
+// populate with what NOT to invent.
+export interface LovableBrief {
+  business_facts_block: string;
+  factual_guardrails: string[];
+  design_direction: string;
+  copy_rules: string[];
+  page_structure: string[];
+  conversion_goal: string;
+  imagery_instructions: string;
+  mobile_instructions: string;
+  final_qa_instructions: string;
+  full_prompt: string;
+  generatedAt: string;
+}
+
+export type OutreachKind = "first_contact" | "demo_link" | "follow_up";
+export type OutreachChannel = "email" | "whatsapp" | "facebook" | "instagram" | "linkedin";
+
+export interface OutreachMessage {
+  subject: string | null; // email only
+  body: string;
+  channel: OutreachChannel;
+  kind: OutreachKind;
+  generatedAt: string;
+}
+
 export interface Demo {
   id: string;
   business_id: string;
@@ -356,6 +406,14 @@ export interface Demo {
   custom_domain: string | null;
   production_mode: boolean;
   failure_reason: string | null;
+  // V2.5 — Lovable-centric workflow fields. All nullable/defaulted so
+  // existing demo rows keep working untouched.
+  demo_url: string | null;
+  demo_builder: DemoBuilder | null;
+  workflow_status: WorkflowStatus;
+  lovable_brief: LovableBrief | null;
+  // outreach_messages is keyed "<kind>_<channel>", e.g. "first_contact_email".
+  outreach_messages: Record<string, OutreachMessage>;
   quality_check: DemoQualityCheck | null;
   presentation_review: PresentationQualityReview | null;
   send_readiness: SendReadiness | null;

@@ -80,6 +80,13 @@ export function outreachChannelBadgeClasses(active: boolean): string {
     : "bg-slate-50 text-slate-300 border border-slate-200";
 }
 
+export function priorityBadgeClasses(score: number): string {
+  if (score >= 75) return "bg-purple-100 text-purple-800 border border-purple-200";
+  if (score >= 50) return "bg-blue-50 text-blue-700 border border-blue-200";
+  if (score >= 25) return "bg-slate-100 text-slate-600 border border-slate-200";
+  return "bg-slate-50 text-slate-400 border border-slate-200";
+}
+
 export function severityClasses(severity: "low" | "medium" | "high"): string {
   switch (severity) {
     case "high":

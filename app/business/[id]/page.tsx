@@ -3,17 +3,22 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import type { Business } from "@/lib/types";
+import type { Business, ContactRoute } from "@/lib/types";
 import type { ScoreBreakdownLine } from "@/lib/scoring";
 import type { Demo } from "@/lib/demo/types";
-import { tierBadgeClasses, websiteStatusBadgeClasses, websiteStatusLabel, severityClasses, demoPotentialBadgeClasses, outreachTierBadgeClasses } from "@/lib/ui";
+import { tierBadgeClasses, websiteStatusBadgeClasses, websiteStatusLabel, severityClasses, demoPotentialBadgeClasses, outreachTierBadgeClasses, priorityBadgeClasses } from "@/lib/ui";
 import { DemoActions } from "@/components/DemoActions";
+import { EnrichContactButton } from "@/components/EnrichContactButton";
+import { DemoPrepPanel } from "@/components/DemoPrepPanel";
+import { OutreachPanel } from "@/components/OutreachPanel";
 import { computeOutreachReadiness } from "@/lib/outreach";
+import { calculateProspectPriority } from "@/lib/prospect-priority";
 
 interface DetailResponse {
   business: Business;
   breakdown: ScoreBreakdownLine[];
   demo: Demo | null;
+  contactRoutes: ContactRoute[];
 }
 
 export default function BusinessDetailPage() {
@@ -61,12 +66,37 @@ export default function BusinessDetailPage() {
         </div>
       )}
 
-      {data && !loading && <BusinessDetail business={data.business} breakdown={data.breakdown} demo={data.demo} />}
+      {data && !loading && (
+        <BusinessDetail
+          business={data.business}
+          breakdown={data.breakdown}
+          demo={data.demo}
+          contactRoutes={data.contactRoutes}
+          onDemoUpdated={(demo) => setData((d) => (d ? { ...d, demo } : d))}
+          onEnriched={() => {
+            if (!params.id) return;
+            fetch(`/api/business/${params.id}`)
+              .then((res) => res.json())
+              .then((json: DetailResponse) => setData(json))
+              .catch(() => {});
+          }}
+        />
+      )}
     </main>
   );
 }
 
-function BusinessDetail({ business, breakdown, demo }: { business: Business; breakdown: ScoreBreakdownLine[]; demo: Demo | null }) {
+function BusinessDetail({
+  business, breakdown, demo, contactRoutes, onDemoUpdated, onEnriched,
+}: {
+  business: Business;
+  breakdown: ScoreBreakdownLine[];
+  demo: Demo | null;
+  contactRoutes: ContactRoute[];
+  onDemoUpdated: (demo: Demo) => void;
+  onEnriched: () => void;
+}) {
+  const priority = calculateProspectPriority(business, demo?.business_profile?.data_richness_score);
   return (
     <div className="mt-4 space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -75,6 +105,12 @@ function BusinessDetail({ business, breakdown, demo }: { business: Business; bre
           <p className="text-sm text-slate-500">{business.category}</p>
         </div>
         <div className="flex items-center gap-3">
+          <span
+            className={`rounded-full px-3 py-1 text-sm font-semibold ${priorityBadgeClasses(priority.score)}`}
+            title={priority.breakdown.map((l) => `${l.label}: ${l.value}`).join("\n")}
+          >
+            Priority {priority.score}
+          </span>
           <span className={`rounded-full px-3 py-1 text-sm font-semibold ${tierBadgeClasses(business.opportunity_tier)}`}>
             {business.opportunity_tier}
           </span>
@@ -126,7 +162,7 @@ function BusinessDetail({ business, breakdown, demo }: { business: Business; bre
         </dl>
       </Section>
 
-      <ContactRoutesSection business={business} />
+      <ContactRoutesSection business={business} contactRoutes={contactRoutes} onEnriched={onEnriched} />
 
       <Section title="Google reputation">
         <dl className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -186,6 +222,14 @@ function BusinessDetail({ business, breakdown, demo }: { business: Business; bre
         </div>
       </Section>
 
+      <Section title="Demo Prep — Lovable Brief">
+        <DemoPrepPanel businessId={business.id} demo={demo} onUpdated={onDemoUpdated} />
+      </Section>
+
+      <Section title="Outreach">
+        <OutreachPanel businessId={business.id} business={business} demo={demo} onUpdated={onDemoUpdated} />
+      </Section>
+
       <Section title="Score breakdown">
         {breakdown.length === 0 ? (
           <p className="text-sm text-slate-500">No score-contributing factors.</p>
@@ -208,8 +252,14 @@ function BusinessDetail({ business, breakdown, demo }: { business: Business; bre
 // (see lib/outreach.ts): can this business be reached through channels
 // actually used for outreach — never phone calls, mobile is only ever a
 // WhatsApp CANDIDATE, not confirmed WhatsApp.
-function ContactRoutesSection({ business }: { business: Business }) {
-  const outreach = computeOutreachReadiness(business);
+function ContactRoutesSection({
+  business, contactRoutes, onEnriched,
+}: {
+  business: Business;
+  contactRoutes: ContactRoute[];
+  onEnriched: () => void;
+}) {
+  const outreach = computeOutreachReadiness(business, contactRoutes);
   const { channels } = outreach;
 
   return (
@@ -253,6 +303,23 @@ function ContactRoutesSection({ business }: { business: Business }) {
           <li key={i} className="text-xs text-slate-500">{r}</li>
         ))}
       </ul>
+      {contactRoutes.length > 0 && (
+        <div className="mt-4 border-t border-slate-200 pt-3">
+          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">Discovered routes</h3>
+          <ul className="space-y-1">
+            {contactRoutes.map((route) => (
+              <li key={route.id} className="flex flex-wrap items-center gap-2 text-xs text-slate-600">
+                <span className="font-medium text-slate-800">{route.type}</span>
+                <span>{route.value}</span>
+                <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-slate-500">{route.source}</span>
+                <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-slate-500">{route.confidence}</span>
+                {route.verified && <span className="rounded-full border border-green-200 bg-green-50 px-2 py-0.5 text-green-700">verified</span>}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      <EnrichContactButton businessId={business.id} onEnriched={onEnriched} />
     </Section>
   );
 }

@@ -47,6 +47,11 @@ export async function buildDemo(business: Business): Promise<Demo> {
     quality_check: null,
     presentation_review: null,
     send_readiness: null,
+    demo_url: null,
+    demo_builder: null,
+    workflow_status: "NOT_STARTED",
+    lovable_brief: null,
+    outreach_messages: {},
     created_at: now,
     updated_at: now,
   };

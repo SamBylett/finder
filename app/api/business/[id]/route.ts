@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCachedBusiness } from "@/lib/store";
 import { getDemoByBusinessId } from "@/lib/demo/store";
+import { getContactRoutes } from "@/lib/contact-routes";
 
 export async function GET(
   _request: NextRequest,
@@ -19,7 +20,7 @@ export async function GET(
     );
   }
 
-  const demo = await getDemoByBusinessId(id);
+  const [demo, contactRoutes] = await Promise.all([getDemoByBusinessId(id), getContactRoutes(id)]);
 
-  return NextResponse.json({ ...cached, demo: demo ?? null });
+  return NextResponse.json({ ...cached, demo: demo ?? null, contactRoutes });
 }

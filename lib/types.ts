@@ -54,6 +54,35 @@ export interface Business {
   created_at: string;
 }
 
+// V2.5 — full provenance record for a discovered contact route. businesses.
+// email/phone/facebook_url/instagram_url/linkedin_url stay as a denormalized
+// "best known value per type" cache (resolved by source priority — see
+// lib/contact-routes.ts) so every existing call site keeps working
+// unmodified; ContactRoute rows are the source of truth/audit trail behind
+// that cache, supporting multiple routes per type with independent
+// provenance (e.g. a website-sourced email AND a lower-priority FindyMail
+// one, both kept).
+export type ContactRouteType =
+  | "EMAIL" | "MOBILE" | "LANDLINE" | "FACEBOOK" | "INSTAGRAM" | "LINKEDIN" | "CONTACT_FORM" | "OTHER";
+
+export type ContactRouteSource = "website" | "google_places" | "findymail" | "social_profile" | "directory" | "inferred";
+
+export type ContactRouteConfidence = "high" | "medium" | "low";
+
+export interface ContactRoute {
+  id: string;
+  business_id: string;
+  type: ContactRouteType;
+  value: string;
+  normalized_value: string | null;
+  source: ContactRouteSource;
+  confidence: ContactRouteConfidence;
+  // Only ever true when the source itself explicitly confirms it (e.g. a
+  // FindyMail verification field) — never inferred from confidence tier.
+  verified: boolean;
+  discovered_at: string;
+}
+
 // Params driving a search / discovery run
 export interface SearchParams {
   keyword: string; // e.g. "roofers"

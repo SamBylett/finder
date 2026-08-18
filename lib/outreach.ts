@@ -6,7 +6,7 @@
 // presence-based — no weighted points, since every tier the spec describes
 // is expressible as a simple count of usable channels.
 
-import type { Business } from "./types";
+import type { Business, ContactRoute } from "./types";
 
 export type OutreachTier = "HIGH" | "GOOD" | "LIMITED" | "POOR";
 
@@ -27,18 +27,32 @@ export interface OutreachReadiness {
   reasons: string[];
 }
 
-export function computeOutreachReadiness(business: Business): OutreachReadiness {
-  const mobile = business.phone_type === "mobile";
+// V2.5: `routes`, when supplied (the business-detail page always has them),
+// lets a channel's presence be discounted if every recorded route for that
+// type is low-confidence and unverified — a guessed FindyMail email
+// shouldn't count as a "strong route" the same way a verified one does.
+// ResultsTable omits `routes` (no per-row query) and gets today's
+// presence-only behaviour, unchanged — no regression, no N+1 query added.
+function isChannelUsable(businessHasValue: boolean, routes: ContactRoute[] | undefined, type: ContactRoute["type"]): boolean {
+  if (!businessHasValue) return false;
+  if (!routes) return true;
+  const forType = routes.filter((r) => r.type === type);
+  if (forType.length === 0) return true; // no recorded provenance (legacy field) — trust it
+  return forType.some((r) => r.confidence !== "low" || r.verified);
+}
+
+export function computeOutreachReadiness(business: Business, routes?: ContactRoute[]): OutreachReadiness {
+  const mobile = isChannelUsable(business.phone_type === "mobile", routes, "MOBILE");
   const landline = business.phone_type === "landline";
 
   const channels: OutreachChannels = {
-    email: Boolean(business.email),
+    email: isChannelUsable(Boolean(business.email), routes, "EMAIL"),
     mobile,
     whatsappCandidate: mobile,
     landline,
-    facebook: Boolean(business.facebook_url),
-    instagram: Boolean(business.instagram_url),
-    linkedin: Boolean(business.linkedin_url),
+    facebook: isChannelUsable(Boolean(business.facebook_url), routes, "FACEBOOK"),
+    instagram: isChannelUsable(Boolean(business.instagram_url), routes, "INSTAGRAM"),
+    linkedin: isChannelUsable(Boolean(business.linkedin_url), routes, "LINKEDIN"),
   };
 
   const strongRouteCount = [

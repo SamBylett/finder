@@ -3,15 +3,17 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import type { Business, OpportunityTier } from "@/lib/types";
-import { tierBadgeClasses, websiteStatusBadgeClasses, websiteStatusLabel, demoPotentialBadgeClasses, outreachTierBadgeClasses, outreachChannelBadgeClasses } from "@/lib/ui";
+import { tierBadgeClasses, websiteStatusBadgeClasses, websiteStatusLabel, demoPotentialBadgeClasses, outreachTierBadgeClasses, outreachChannelBadgeClasses, priorityBadgeClasses } from "@/lib/ui";
 import { businessesToCsv, downloadCsv } from "@/lib/csv";
 import { computeOutreachReadiness } from "@/lib/outreach";
+import { calculateProspectPriority } from "@/lib/prospect-priority";
 
-type SortKey = "opportunity_score" | "google_review_count" | "demo_potential_score" | "outreach_strong_routes";
+type SortKey = "opportunity_score" | "google_review_count" | "demo_potential_score" | "outreach_strong_routes" | "prospect_priority";
 type FilterKey =
   | "HOT" | "OPPORTUNITY" | "LOW_PRIORITY" | "NO_WEBSITE" | "WEAK_WEBSITE"
   | "HAS_EMAIL" | "HAS_MOBILE" | "HAS_FACEBOOK" | "HAS_INSTAGRAM" | "HAS_LINKEDIN"
-  | "ANY_DIGITAL_ROUTE" | "MULTIPLE_ROUTES" | "LANDLINE_ONLY" | "NO_USABLE_ROUTE" | "OUTREACH_READY";
+  | "ANY_DIGITAL_ROUTE" | "MULTIPLE_ROUTES" | "LANDLINE_ONLY" | "NO_USABLE_ROUTE" | "OUTREACH_READY"
+  | "HIGH_DEMO_POTENTIAL" | "READY_FOR_DEMO";
 
 const FILTERS: { key: FilterKey; label: string }[] = [
   { key: "HOT", label: "HOT" },
@@ -19,7 +21,9 @@ const FILTERS: { key: FilterKey; label: string }[] = [
   { key: "LOW_PRIORITY", label: "LOW PRIORITY" },
   { key: "NO_WEBSITE", label: "No website" },
   { key: "WEAK_WEBSITE", label: "Weak website" },
+  { key: "READY_FOR_DEMO", label: "Ready for demo" },
   { key: "OUTREACH_READY", label: "Outreach ready" },
+  { key: "HIGH_DEMO_POTENTIAL", label: "High demo potential" },
   { key: "HAS_EMAIL", label: "Has email" },
   { key: "HAS_MOBILE", label: "Has mobile / WhatsApp" },
   { key: "HAS_FACEBOOK", label: "Has Facebook" },
@@ -61,8 +65,11 @@ export default function ResultsTable({ results }: { results: Business[] }) {
 
   const sorted = useMemo(() => {
     const copy = [...filtered];
-    const value = (b: Business) =>
-      sortKey === "outreach_strong_routes" ? computeOutreachReadiness(b).strongRouteCount : b[sortKey];
+    const value = (b: Business) => {
+      if (sortKey === "outreach_strong_routes") return computeOutreachReadiness(b).strongRouteCount;
+      if (sortKey === "prospect_priority") return calculateProspectPriority(b).score;
+      return b[sortKey];
+    };
     copy.sort((a, b) => {
       const diff = value(a) - value(b);
       return sortDir === "desc" ? -diff : diff;
@@ -105,14 +112,17 @@ export default function ResultsTable({ results }: { results: Business[] }) {
           )}
         </div>
 
-        <button
-          type="button"
-          onClick={handleExportCsv}
-          disabled={sorted.length === 0}
-          className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:border-slate-400 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          Export CSV ({sorted.length})
-        </button>
+        <div className="flex items-center gap-2">
+          <BatchEnrichControl />
+          <button
+            type="button"
+            onClick={handleExportCsv}
+            disabled={sorted.length === 0}
+            className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:border-slate-400 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            Export CSV ({sorted.length})
+          </button>
+        </div>
       </div>
 
       <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
@@ -129,12 +139,14 @@ export default function ResultsTable({ results }: { results: Business[] }) {
               <Th>Tier</Th>
               <ThSortable label="Demo Potential" active={sortKey === "demo_potential_score"} dir={sortDir} onClick={() => toggleSort("demo_potential_score")} />
               <ThSortable label="Outreach" active={sortKey === "outreach_strong_routes"} dir={sortDir} onClick={() => toggleSort("outreach_strong_routes")} />
+              <ThSortable label="Priority" active={sortKey === "prospect_priority"} dir={sortDir} onClick={() => toggleSort("prospect_priority")} />
               <Th>Actions</Th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
             {sorted.map((b) => {
               const outreach = computeOutreachReadiness(b);
+              const priority = calculateProspectPriority(b);
               return (
                 <tr key={b.id} className="hover:bg-slate-50">
                   <td className="px-4 py-3 font-medium text-slate-900">{b.business_name}</td>
@@ -171,6 +183,14 @@ export default function ResultsTable({ results }: { results: Business[] }) {
                     </span>
                   </td>
                   <td className="px-4 py-3">
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-xs font-semibold ${priorityBadgeClasses(priority.score)}`}
+                      title={priority.breakdown.map((l) => `${l.label}: ${l.value}`).join("\n")}
+                    >
+                      {priority.score}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3">
                     <Link href={`/business/${b.id}`} className="text-sm font-medium text-blue-600 hover:underline">
                       View details
                     </Link>
@@ -180,7 +200,7 @@ export default function ResultsTable({ results }: { results: Business[] }) {
             })}
             {sorted.length === 0 && (
               <tr>
-                <td colSpan={11} className="px-4 py-8 text-center text-slate-400">
+                <td colSpan={12} className="px-4 py-8 text-center text-slate-400">
                   No businesses match the current filters.
                 </td>
               </tr>
@@ -239,6 +259,14 @@ function matchesAllFilters(b: Business, filters: Set<FilterKey>): boolean {
         if (!(outreach.strongRouteCount === 0 && !outreach.channels.landline)) return false;
         break;
       case "OUTREACH_READY":
+        if (outreach.tier !== "HIGH" && outreach.tier !== "GOOD") return false;
+        break;
+      case "HIGH_DEMO_POTENTIAL":
+        if (b.demo_potential_tier !== "EXCELLENT DEMO" && b.demo_potential_tier !== "GOOD DEMO") return false;
+        break;
+      case "READY_FOR_DEMO":
+        if (b.opportunity_tier === "LOW PRIORITY") return false;
+        if (b.demo_potential_score < 60) return false;
         if (outreach.tier !== "HIGH" && outreach.tier !== "GOOD") return false;
         break;
     }
@@ -316,6 +344,84 @@ function ContactIndicators({ business, outreach }: { business: Business; outreac
       {outreach.strongRouteCount === 0 && !outreach.channels.landline && (
         <span className="text-xs text-slate-300">—</span>
       )}
+    </div>
+  );
+}
+
+// Batch "Enrich Top N" — always shows the actual eligible count (post-
+// threshold-filter) before spending any FindyMail credits, per V2.5 spec:
+// "Top 50" might only enrich 31 if 19 don't meet the threshold.
+function BatchEnrichControl() {
+  const [topN, setTopN] = useState<10 | 25 | 50>(10);
+  const [preview, setPreview] = useState<{ requestedCount: number; eligibleCount: number } | null>(null);
+  const [running, setRunning] = useState(false);
+  const [result, setResult] = useState<string | null>(null);
+
+  async function handlePreview() {
+    setResult(null);
+    const res = await fetch("/api/enrich/batch", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ topN, dryRun: true }),
+    });
+    const body = await res.json();
+    if (res.ok) setPreview(body);
+  }
+
+  async function handleConfirm() {
+    setRunning(true);
+    setResult(null);
+    try {
+      const res = await fetch("/api/enrich/batch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ topN }),
+      });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error ?? "Batch enrichment failed.");
+      setResult(`Enriched ${body.enrichedCount}/${body.eligibleCount} eligible businesses.`);
+      setPreview(null);
+    } catch (err) {
+      setResult(err instanceof Error ? err.message : "Something went wrong.");
+    } finally {
+      setRunning(false);
+    }
+  }
+
+  return (
+    <div className="flex items-center gap-2 text-xs">
+      <select
+        value={topN}
+        onChange={(e) => { setTopN(Number(e.target.value) as 10 | 25 | 50); setPreview(null); setResult(null); }}
+        className="rounded-md border border-slate-300 px-2 py-1.5"
+      >
+        <option value={10}>Top 10</option>
+        <option value={25}>Top 25</option>
+        <option value={50}>Top 50</option>
+      </select>
+      {!preview ? (
+        <button
+          type="button"
+          onClick={handlePreview}
+          className="rounded-md border border-slate-300 bg-white px-3 py-1.5 font-medium text-slate-700 hover:border-slate-400"
+        >
+          Enrich Top Prospects
+        </button>
+      ) : (
+        <>
+          <span className="text-slate-500">{preview.eligibleCount} of {preview.requestedCount} meet the threshold</span>
+          <button
+            type="button"
+            onClick={handleConfirm}
+            disabled={running || preview.eligibleCount === 0}
+            className="rounded-md bg-slate-900 px-3 py-1.5 font-medium text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {running ? "Enriching…" : `Confirm & Enrich ${preview.eligibleCount}`}
+          </button>
+          <button type="button" onClick={() => setPreview(null)} className="text-slate-400 hover:text-slate-600">Cancel</button>
+        </>
+      )}
+      {result && <span className="text-slate-500">{result}</span>}
     </div>
   );
 }
