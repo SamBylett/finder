@@ -11,7 +11,8 @@ import { generateWebsiteStrategy } from "./strategy";
 import { generateWebsiteCopy } from "./copy";
 import { runSiteDirector } from "./director";
 import { generateDemoSlug } from "./slug";
-import { saveDemo, saveDemoAssets, getDemoByBusinessId } from "./store";
+import { saveDemo, saveDemoAssets, getDemoByBusinessId, getDemoReviews } from "./store";
+import { buildDemoReviews } from "./reviews";
 import type { Demo } from "./types";
 
 export async function buildDemo(business: Business): Promise<Demo> {
@@ -77,7 +78,8 @@ export async function buildDemo(business: Business): Promise<Demo> {
     demo = { ...demo, website_copy: copy, updated_at: new Date().toISOString() };
     await saveDemo(demo);
 
-    const { config } = await runSiteDirector(profile, strategy, assets);
+    const reviews = buildDemoReviews();
+    const { config } = await runSiteDirector(profile, strategy, assets, reviews);
     demo = {
       ...demo,
       site_director_config: config,
@@ -122,7 +124,8 @@ export async function regenerateDemoStage(demo: Demo, stage: RegenerateStage): P
       if (!demo.website_strategy) throw new Error("Cannot re-run the Site Director without a website strategy.");
       const { getDemoAssets } = await import("./store");
       const assets = await getDemoAssets(demo.id);
-      const { config } = await runSiteDirector(demo.business_profile, demo.website_strategy, assets);
+      const reviews = await getDemoReviews(demo.id);
+      const { config } = await runSiteDirector(demo.business_profile, demo.website_strategy, assets, reviews);
       updated = { ...updated, site_director_config: config };
     }
 

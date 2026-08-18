@@ -36,7 +36,7 @@ export function Contact({ ctx, variant }: { ctx: DemoRenderContext; variant: Con
             <SectionHeading heading="Get in touch" subheading={ctx.copy.contact_content} />
             {details}
           </div>
-          <DemoContactForm />
+          <DemoContactForm archetype={ctx.profile.business_archetype} />
         </Container>
       </section>
     );
@@ -49,7 +49,7 @@ export function Contact({ ctx, variant }: { ctx: DemoRenderContext; variant: Con
         <SectionHeading heading="Get in touch" subheading={ctx.copy.contact_content} />
         {details}
         <div className="mt-6">
-          <DemoContactForm />
+          <DemoContactForm archetype={ctx.profile.business_archetype} />
         </div>
       </Container>
     </section>

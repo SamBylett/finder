@@ -34,6 +34,14 @@ export function Hero({ ctx, variant }: { ctx: DemoRenderContext; variant: HeroVa
     </>
   );
 
+  if (variant === "professional-authority") {
+    return (
+      <section className="bg-[var(--demo-bg)] py-28">
+        <Container className="max-w-2xl">{heading}</Container>
+      </section>
+    );
+  }
+
   if (variant === "minimal") {
     return (
       <section className="bg-[var(--demo-surface)] py-20">

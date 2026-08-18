@@ -37,6 +37,20 @@ export function TrustBar({ ctx, variant }: { ctx: DemoRenderContext; variant: Tr
     );
   }
 
+  if (variant === "professional") {
+    return (
+      <div className="border-y border-[var(--demo-border)] py-5">
+        <Container className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-center text-sm text-[var(--demo-text-muted)]">
+          {rating !== null && (
+            <span className="font-medium text-[var(--demo-text)]">{rating}/5 on Google</span>
+          )}
+          {rating !== null && reviewCount !== null && <span aria-hidden>·</span>}
+          {reviewCount !== null && <span>{reviewCount} client reviews</span>}
+        </Container>
+      </div>
+    );
+  }
+
   // google-rating
   return (
     <div className="border-y border-[var(--demo-border)] bg-[var(--demo-surface)] py-4">

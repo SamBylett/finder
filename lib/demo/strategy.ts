@@ -6,6 +6,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { DemoBusinessProfile, WebsiteStrategy } from "./types";
 import { describeProfileForPrompt } from "./prompt-context";
+import { archetypeMeta } from "./industry";
 
 const MODEL = "claude-sonnet-5";
 
@@ -48,6 +49,8 @@ export async function generateWebsiteStrategy(profile: DemoBusinessProfile): Pro
     throw new Error("ANTHROPIC_API_KEY is not configured — cannot generate a website strategy.");
   }
 
+  const meta = archetypeMeta(profile.business_archetype);
+
   const response = await getClient().messages.create({
     model: MODEL,
     max_tokens: 1200,
@@ -63,9 +66,18 @@ export async function generateWebsiteStrategy(profile: DemoBusinessProfile): Pro
           `customer counts, prices, or any claim not present in the data. If information is missing, work around it — ` +
           `do not guess it.\n\n` +
           `Business data:\n${describeProfileForPrompt(profile)}\n\n` +
-          `For local service businesses, normally optimise for phone calls and quote/enquiry requests as the primary ` +
-          `conversion goal unless the data clearly suggests otherwise. Avoid overly clever marketing — the site should feel ` +
-          `credible, established, and local.`,
+          `The conversion model for this business is "${profile.conversion_model.replace(/_/g, " ")}" — primary_cta and ` +
+          `secondary_cta MUST fit that action, not a generic "get a quote". Example wording that fits this business type: ` +
+          `primary ~"${meta.ctaLibrary.hero}", secondary ~"${meta.ctaLibrary.form}". Use these as a tone guide, not verbatim ` +
+          `requirements — adapt naturally to the business.\n` +
+          (meta.professionalSections
+            ? `This is a professional-services business — do NOT use trades language ("quote", "call-out", "job"). Use ` +
+              `consultation/enquiry language instead.\n`
+            : ``) +
+          `Avoid unnecessary adjectives such as "trusted", "leading", "expert", "premier", or "exceptional" unless directly ` +
+          `supported by the data (a strong confirmed rating/review count can justify "highly-rated", nothing else).\n` +
+          `The Google rating/review count is valuable trust proof but will already be shown prominently in its own section — ` +
+          `don't plan for it to be repeated in multiple places; mention it as trust_signals once, not as a refrain.`,
       },
     ],
   });

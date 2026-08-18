@@ -4,6 +4,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { DemoBusinessProfile, WebsiteCopy, WebsiteStrategy } from "./types";
 import { describeProfileForPrompt } from "./prompt-context";
+import { archetypeMeta } from "./industry";
 
 const MODEL = "claude-sonnet-5";
 
@@ -47,12 +48,20 @@ const RESPONSE_SCHEMA = {
     footer_content: { type: "string" },
     seo_title: { type: "string" },
     seo_description: { type: "string" },
+    who_we_help_intro: { type: ["string", "null"] },
+    who_we_help_audiences: { type: "array", items: { type: "string" } },
+    expertise_intro: { type: ["string", "null"] },
+    expertise_items: { type: "array", items: { type: "string" } },
+    process_intro: { type: ["string", "null"] },
+    process_steps: { type: "array", items: { type: "string" } },
   },
   required: [
     "navigation_labels", "hero_eyebrow", "hero_headline", "hero_supporting_text", "primary_cta",
     "secondary_cta", "trust_bar_text", "services_intro", "service_cards", "about", "why_choose_us",
     "gallery_intro", "testimonials_heading", "service_area_content", "faq", "final_cta_heading",
     "final_cta_body", "contact_content", "footer_content", "seo_title", "seo_description",
+    "who_we_help_intro", "who_we_help_audiences", "expertise_intro", "expertise_items",
+    "process_intro", "process_steps",
   ],
   additionalProperties: false,
 };
@@ -68,6 +77,18 @@ const BANNED_PHRASES = [
   "unparalleled service", "customer satisfaction is our priority", "bringing your vision to life",
 ];
 
+// Self-validating FAQ questions ("are you legit") read as machine-generated
+// filler and never appear on a real business's own site. Grounded in the
+// prompt AND enforced as a deterministic post-filter — see stripBannedFaq.
+const BANNED_FAQ_PATTERNS = [
+  /\breputable\b/i, /\btrust(worthy)?\b.*\byou\b/i, /\bcan i trust\b/i, /\blegit(imate)?\b/i,
+  /\bare you (a )?(good|reliable|real)\b/i,
+];
+
+function stripBannedFaq(faq: { question: string; answer: string }[]): { question: string; answer: string }[] {
+  return faq.filter((item) => !BANNED_FAQ_PATTERNS.some((re) => re.test(item.question)));
+}
+
 export async function generateWebsiteCopy(
   profile: DemoBusinessProfile,
   strategy: WebsiteStrategy
@@ -76,9 +97,11 @@ export async function generateWebsiteCopy(
     throw new Error("ANTHROPIC_API_KEY is not configured — cannot generate website copy.");
   }
 
+  const meta = archetypeMeta(profile.business_archetype);
+
   const response = await getClient().messages.create({
     model: MODEL,
-    max_tokens: 2000,
+    max_tokens: 2400,
     output_config: { effort: "low", format: { type: "json_schema", schema: RESPONSE_SCHEMA } },
     messages: [
       {
@@ -96,10 +119,34 @@ export async function generateWebsiteCopy(
           `- Avoid hype, filler, and generic AI phrasing. Never claim "leading" or "best" without evidence.\n` +
           `- Do not use these exact clichés unless the wording comes directly from the business itself: ` +
           `${BANNED_PHRASES.map((p) => `"${p}"`).join(", ")}.\n` +
+          `- Source-priority for service_cards and any service terminology, in order: (1) confirmed_services if listed above, ` +
+          `using their exact meaningful distinctions (e.g. "flat roofing" vs "pitched roofing" if both are confirmed) — ` +
+          `(2) the customer-facing category — (3) a safe generic description as a last resort. Never invent a specific ` +
+          `service just because businesses of this type commonly offer it.\n` +
+          `- CTAs must fit the "${profile.conversion_model.replace(/_/g, " ")}" conversion model. Tone reference for this ` +
+          `business type — hero: "${meta.ctaLibrary.hero}", mid-page: "${meta.ctaLibrary.mid}", final: "${meta.ctaLibrary.final}", ` +
+          `phone button: "${meta.ctaLibrary.phone}", form submit: "${meta.ctaLibrary.form}". Adapt naturally, don't copy verbatim, ` +
+          `but stay in that register — ${meta.professionalSections ? "never use trades \"quote\"/\"job\" language" : "quote/callout language is fine if it fits"}.\n` +
+          `- FAQ: 3-5 REAL prospective-customer questions, grounded in examples like: ${meta.faqExamples.map((q) => `"${q}"`).join(", ")}. ` +
+          `Never generate self-validating trust questions such as "Are you reputable?" or "How do I know I can trust you?" — ` +
+          `real businesses don't put those on their own site. Only mention services/capabilities the answer can honestly support.\n` +
+          `- About: if content_richness is "sparse" or little is confirmed, keep it to 1-2 short sentences — do not pad with ` +
+          `restated database facts ("X is based in Y and has Z reviews and offers W"). A short honest paragraph beats a long ` +
+          `generic one.\n` +
+          `- The Google rating is trust proof that will already appear prominently elsewhere on the page — do not restate the ` +
+          `exact rating/review numbers in hero_supporting_text, about, AND final_cta_body; use it at most once outside the ` +
+          `dedicated trust section.\n` +
           `- service_cards should reflect priority_services from the strategy; keep names short and descriptions to one sentence.\n` +
-          `- faq should be 3-5 realistic questions a prospective customer in this trade would ask, answered generically ` +
-          `and honestly (no invented turnaround times, prices, or guarantees).\n` +
-          `- If service_area_content or testimonials_heading don't make sense given missing data, return null for them.`,
+          `- If service_area_content or testimonials_heading don't make sense given missing data, return null for them.\n` +
+          (meta.professionalSections
+            ? `- This is a professional-services business: populate who_we_help_intro/who_we_help_audiences ONLY with audiences ` +
+              `reasonably supported by the category/services evidence (e.g. do not claim "limited companies" service unless ` +
+              `evidenced) — otherwise return null/[]. Populate expertise_intro/expertise_items conservatively from the ` +
+              `customer-facing category and any confirmed services — otherwise null/[]. process_steps should be a short, ` +
+              `conservative, generic 3-step process (e.g. "Get in touch", "Discuss your requirements", "Receive advice/next ` +
+              `steps") since we don't know their actual process — do not invent specifics.\n`
+            : `- This is not a professional-services business — return null/[] for who_we_help_intro, who_we_help_audiences, ` +
+              `expertise_intro, expertise_items, process_intro, process_steps.\n`),
       },
     ],
   });
@@ -113,5 +160,6 @@ export async function generateWebsiteCopy(
     throw new Error("Website copy generation returned no content.");
   }
 
-  return JSON.parse(textBlock.text) as WebsiteCopy;
+  const parsed = JSON.parse(textBlock.text) as WebsiteCopy;
+  return { ...parsed, faq: stripBannedFaq(parsed.faq) };
 }

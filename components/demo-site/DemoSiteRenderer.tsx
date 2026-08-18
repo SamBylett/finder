@@ -12,6 +12,9 @@ import { TrustBar } from "./TrustBar";
 import { Services } from "./Services";
 import { Gallery } from "./Gallery";
 import { About } from "./About";
+import { WhoWeHelp } from "./WhoWeHelp";
+import { Expertise } from "./Expertise";
+import { Process } from "./Process";
 import { Reviews } from "./Reviews";
 import { ServiceAreas } from "./ServiceAreas";
 import { Faq } from "./Faq";
@@ -54,6 +57,12 @@ export function DemoSiteRenderer({
             return <Gallery key={i} ctx={ctx} variant={section.variant} />;
           case "about":
             return <About key={i} ctx={ctx} variant={section.variant} />;
+          case "who-we-help":
+            return <WhoWeHelp key={i} ctx={ctx} variant={section.variant} />;
+          case "expertise":
+            return <Expertise key={i} ctx={ctx} variant={section.variant} />;
+          case "process":
+            return <Process key={i} ctx={ctx} variant={section.variant} />;
           case "reviews":
             return <Reviews key={i} ctx={ctx} variant={section.variant} />;
           case "service-areas":

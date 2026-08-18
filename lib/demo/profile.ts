@@ -4,20 +4,31 @@
 
 import type { Business } from "@/lib/types";
 import { fact } from "./types";
-import type { DemoBusinessProfile } from "./types";
-import { resolveIndustryFamily } from "./industry";
+import type { ContentRichness, DemoBusinessProfile } from "./types";
+import { archetypeMeta, resolveBusinessArchetype } from "./industry";
 
 export function buildDemoBusinessProfile(business: Business): DemoBusinessProfile {
   // Google's primary type can be generic/wrong (e.g. "General Contractor" for
   // an actual landscaper) — checking the business name too catches cases the
   // category alone misses, without ever inventing a category that wasn't there.
-  const industryFamily = resolveIndustryFamily(business.category, business.business_name);
+  const archetype = resolveBusinessArchetype(business.category, business.business_name);
+  const meta = archetypeMeta(archetype);
+
+  const sourceCategoryFact = fact.confirmed(business.category, "google_places");
 
   return {
     business_id: business.id,
     business_name: fact.confirmed(business.business_name, "google_places"),
-    category: fact.confirmed(business.category, "google_places"),
-    industry_family: industryFamily,
+    source_category: sourceCategoryFact,
+    category: sourceCategoryFact,
+    // Deterministic, NOT AI-generated — a customer-facing label derived from
+    // the resolved archetype, never Google's raw (often generic/misleading)
+    // category text. See lib/demo/industry.ts ARCHETYPES.
+    marketing_category: meta.marketingCategoryLabel,
+    industry_family: meta.family,
+    business_archetype: archetype,
+    conversion_model: meta.conversionModel,
+    content_richness: computeContentRichness(business),
     address: fact.confirmed(business.address, "google_places"),
     town_city: fact.confirmed(business.town_city, "google_places"),
     postcode: business.postcode ? fact.confirmed(business.postcode, "google_places") : fact.unknown(),
@@ -35,12 +46,29 @@ export function buildDemoBusinessProfile(business: Business): DemoBusinessProfil
     instagram_url: business.instagram_url ? fact.confirmed(business.instagram_url, "website") : fact.unknown(),
     // We don't scrape a structured services list in V1's website analyzer —
     // leaving this empty (rather than guessing from the category) keeps the
-    // "never invent services" rule intact. Can be populated later if the
-    // analyzer starts extracting a services list.
+    // "never invent services" rule intact. Known limitation: until the
+    // analyzer extracts a real services list, copy generation falls back to
+    // conservative category-derived descriptions (see strategy.ts/copy.ts).
     confirmed_services: [],
     service_areas: [],
     business_description: fact.unknown(),
     website_weaknesses: business.detected_issues.map((i) => i.label),
     source_urls: [business.website_url, business.google_maps_url].filter((u): u is string => Boolean(u)),
   };
+}
+
+// How much real material there is to work with — drives whether sections
+// that need substance get shown at full size, compact, or omitted entirely
+// (a shorter credible site beats a longer padded one).
+function computeContentRichness(business: Business): ContentRichness {
+  let score = 0;
+  if (business.phone) score += 1;
+  if (business.email) score += 1;
+  if (business.website_url) score += 1;
+  if (business.google_review_count >= 20) score += 2;
+  else if (business.google_review_count >= 5) score += 1;
+
+  if (score >= 4) return "rich";
+  if (score >= 2) return "moderate";
+  return "sparse";
 }

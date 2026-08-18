@@ -24,6 +24,23 @@ export function Cta({ ctx, variant }: { ctx: DemoRenderContext; variant: CtaVari
     );
   }
 
+  if (variant === "consultation") {
+    return (
+      <section className="border-t border-[var(--demo-border)] bg-[var(--demo-surface)] py-20">
+        <Container className="max-w-xl text-center">
+          <h2 style={{ fontFamily: "var(--demo-font-heading)" }} className="text-3xl font-normal text-[var(--demo-text)]">
+            {ctx.copy.final_cta_heading}
+          </h2>
+          <div className="mx-auto mt-4 h-px w-10 bg-[var(--demo-accent)]" />
+          <p className="mt-4 text-[var(--demo-text-muted)]">{ctx.copy.final_cta_body}</p>
+          <div className="mt-8 flex flex-wrap justify-center gap-3">
+            <PrimaryButton href={href}>{ctx.copy.primary_cta}</PrimaryButton>
+          </div>
+        </Container>
+      </section>
+    );
+  }
+
   if (variant === "simple") {
     return (
       <section className="border-t border-[var(--demo-border)] py-16">
