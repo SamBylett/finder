@@ -25,8 +25,10 @@ const STATUS_LABELS: Record<DemoStatus, string> = {
 function qualityBadgeClasses(status: string): string {
   switch (status) {
     case "READY":
+    case "READY_TO_SEND":
       return "bg-green-50 text-green-700 border border-green-200";
     case "NEEDS_REVIEW":
+    case "NEEDS_VISUAL_REVIEW":
       return "bg-amber-50 text-amber-700 border border-amber-200";
     case "NOT_READY":
       return "bg-red-50 text-red-700 border border-red-200";
@@ -82,6 +84,7 @@ export default async function DemosPage() {
                 <Th>Business</Th>
                 <Th>Status</Th>
                 <Th>Quality</Th>
+                <Th>Send readiness</Th>
                 <Th>Sharing</Th>
                 <Th>Demo Potential</Th>
                 <Th>Updated</Th>
@@ -122,7 +125,19 @@ function DemoRow({ demo }: { demo: Demo }) {
             {demo.quality_check.status.replace("_", " ")}
           </span>
         ) : (
-          <span className="text-xs text-slate-400">—</span>
+          <span className="text-xs text-slate-400">-</span>
+        )}
+      </td>
+      <td className="px-4 py-3">
+        {demo.send_readiness ? (
+          <span
+            className={`rounded-full px-2 py-0.5 text-xs font-medium ${qualityBadgeClasses(demo.send_readiness)}`}
+            title={demo.presentation_review?.findings.join("\n") || "No findings"}
+          >
+            {demo.send_readiness.replace(/_/g, " ")}
+          </span>
+        ) : (
+          <span className="text-xs text-slate-400">-</span>
         )}
       </td>
       <td className="px-4 py-3 text-slate-600">{demo.sharing_enabled ? "Enabled" : "Off"}</td>

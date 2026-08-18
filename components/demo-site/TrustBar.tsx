@@ -11,7 +11,7 @@ export function TrustBar({ ctx, variant }: { ctx: DemoRenderContext; variant: Tr
   if (variant === "simple") {
     return (
       <div className="border-y border-[var(--demo-border)] bg-[var(--demo-surface)] py-3 text-center text-sm text-[var(--demo-text-muted)]">
-        {ctx.copy.trust_bar_text ?? `${rating ?? "—"} from ${reviewCount ?? 0} Google reviews`}
+        {ctx.copy.trust_bar_text ?? `${rating ?? "N/A"} from ${reviewCount ?? 0} Google reviews`}
       </div>
     );
   }
@@ -56,7 +56,7 @@ export function TrustBar({ ctx, variant }: { ctx: DemoRenderContext; variant: Tr
     <div className="border-y border-[var(--demo-border)] bg-[var(--demo-surface)] py-4">
       <Container className="flex items-center justify-center gap-2 text-center text-sm font-medium text-[var(--demo-text)]">
         <span className="text-[var(--demo-accent)]">★★★★★</span>
-        <span>{rating ?? "—"}/5 from {reviewCount ?? 0} Google reviews</span>
+        <span>{rating ?? "N/A"}/5 from {reviewCount ?? 0} Google reviews</span>
       </Container>
     </div>
   );

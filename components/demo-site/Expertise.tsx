@@ -25,7 +25,7 @@ export function Expertise({ ctx, variant }: { ctx: DemoRenderContext; variant: E
           <ul className="grid gap-3 sm:grid-cols-2">
             {items.map((item) => (
               <li key={item} className="flex items-start gap-3 border-b border-[var(--demo-border)] pb-3 text-[var(--demo-text)]">
-                <span className="mt-0.5 text-[var(--demo-accent)]">—</span>
+                <span className="mt-0.5 text-[var(--demo-accent)]" aria-hidden>•</span>
                 {item}
               </li>
             ))}

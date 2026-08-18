@@ -40,7 +40,7 @@ export function Hero({ ctx, variant }: { ctx: DemoRenderContext; variant: HeroVa
           {eyebrow}
           <h1
             style={{ fontFamily: "var(--demo-font-heading)" }}
-            className="text-5xl font-normal leading-[1.15] text-[var(--demo-text)] sm:text-6xl"
+            className="text-5xl font-medium leading-[1.15] text-[var(--demo-text)] sm:text-6xl"
           >
             {ctx.copy.hero_headline}
           </h1>
@@ -64,7 +64,7 @@ export function Hero({ ctx, variant }: { ctx: DemoRenderContext; variant: HeroVa
             )}
             <h1
               style={{ fontFamily: "var(--demo-font-heading)" }}
-              className="max-w-2xl text-5xl font-normal leading-[1.1] sm:text-6xl"
+              className="max-w-2xl text-5xl font-medium leading-[1.1] sm:text-6xl"
             >
               {ctx.copy.hero_headline}
             </h1>
@@ -87,7 +87,7 @@ export function Hero({ ctx, variant }: { ctx: DemoRenderContext; variant: HeroVa
           {eyebrow}
           <h1
             style={{ fontFamily: "var(--demo-font-heading)" }}
-            className="text-5xl font-normal leading-[1.1] text-[var(--demo-text)] sm:text-6xl"
+            className="text-5xl font-medium leading-[1.1] text-[var(--demo-text)] sm:text-6xl"
           >
             {ctx.copy.hero_headline}
           </h1>

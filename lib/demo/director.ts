@@ -13,6 +13,7 @@ import { archetypeMeta } from "./industry";
 import { describeProfileForPrompt } from "./prompt-context";
 import { fallbackSiteDirectorConfig } from "./fallback-config";
 import { applyDeterministicGuardrails } from "./guardrails";
+import { applyPremiumDesignDirector } from "./premium-director";
 import type {
   DemoAsset, DemoBusinessProfile, DemoReview, PaletteId, SectionConfig, SiteDirectorConfig, ThemeId, WebsiteStrategy,
 } from "./types";
@@ -108,7 +109,7 @@ export async function runSiteDirector(
   const fallback = fallbackSiteDirectorConfig(profile, assets, reviews.length);
 
   if (!process.env.ANTHROPIC_API_KEY) {
-    return { config: fallback, usedFallback: true };
+    return { config: applyPremiumDesignDirector(fallback, profile), usedFallback: true };
   }
 
   try {
@@ -145,14 +146,14 @@ export async function runSiteDirector(
       ],
     });
 
-    if (response.stop_reason === "refusal") return { config: fallback, usedFallback: true };
+    if (response.stop_reason === "refusal") return { config: applyPremiumDesignDirector(fallback, profile), usedFallback: true };
 
     const textBlock = response.content.find((b) => b.type === "text");
-    if (!textBlock || textBlock.type !== "text") return { config: fallback, usedFallback: true };
+    if (!textBlock || textBlock.type !== "text") return { config: applyPremiumDesignDirector(fallback, profile), usedFallback: true };
 
     const parsed = JSON.parse(textBlock.text);
     const validated = isValidResponse(parsed, skeleton);
-    if (!validated) return { config: fallback, usedFallback: true };
+    if (!validated) return { config: applyPremiumDesignDirector(fallback, profile), usedFallback: true };
 
     const config: SiteDirectorConfig = {
       industryFamily: profile.industry_family,
@@ -166,8 +167,8 @@ export async function runSiteDirector(
       sections: validated.sections,
     };
 
-    return { config: applyDeterministicGuardrails(config, profile, assets), usedFallback: false };
+    return { config: applyPremiumDesignDirector(applyDeterministicGuardrails(config, profile, assets), profile), usedFallback: false };
   } catch {
-    return { config: fallback, usedFallback: true };
+    return { config: applyPremiumDesignDirector(fallback, profile), usedFallback: true };
   }
 }

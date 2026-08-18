@@ -9,10 +9,26 @@
 
 import type { Business } from "@/lib/types";
 import { fact } from "./types";
-import type { DemoAsset, DemoBusinessProfile } from "./types";
+import type { DemoAsset, DemoBusinessProfile, LocationMode } from "./types";
 import { archetypeMeta, resolveBusinessArchetype } from "./industry";
 import type { EnrichmentResult } from "./enrichment";
 import { calculateDataRichness } from "./richness";
+
+// V2.3 location intelligence (spec #9-11). Deterministic, conservative: we
+// only ever have ONE confirmed Google listing per business, so
+// "multiple_locations" is never assigned yet — there's no data source that
+// would let us confirm a second premises without inventing it. Premises-
+// based archetypes (professional services, automotive/garage-type) get a
+// styled address + directions treatment when we have a confirmed address;
+// mobile/service-area trades do not, because a Google listing for a roofer
+// or plumber is very often a home or registered address rather than a
+// customer-facing premises, and exposing it as one would be inappropriate.
+function resolveLocationMode(archetype: ReturnType<typeof resolveBusinessArchetype>, hasAddress: boolean): LocationMode {
+  if (!hasAddress) return "location_hidden";
+  const meta = archetypeMeta(archetype);
+  const premisesBased = meta.professionalSections || meta.family === "automotive";
+  return premisesBased ? "physical_location" : "service_area";
+}
 
 export function buildBaseProfile(business: Business): Omit<DemoBusinessProfile, "content_richness" | "data_richness_score"> {
   // Google's primary type can be generic/wrong (e.g. "General Contractor" for
@@ -32,6 +48,9 @@ export function buildBaseProfile(business: Business): Omit<DemoBusinessProfile, 
     industry_family: meta.family,
     business_archetype: archetype,
     conversion_model: meta.conversionModel,
+    location_mode: resolveLocationMode(archetype, Boolean(business.address)),
+    latitude: business.latitude ?? null,
+    longitude: business.longitude ?? null,
     address: fact.confirmed(business.address, "google_places"),
     town_city: fact.confirmed(business.town_city, "google_places"),
     postcode: business.postcode ? fact.confirmed(business.postcode, "google_places") : fact.unknown(),

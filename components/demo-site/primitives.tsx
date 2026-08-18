@@ -65,7 +65,7 @@ export function SectionHeading({
       )}
       <h2
         style={{ fontFamily: "var(--demo-font-heading)" }}
-        className="text-4xl font-normal leading-tight text-[var(--demo-text)] sm:text-5xl"
+        className="text-4xl font-medium leading-tight text-[var(--demo-text)] sm:text-5xl"
       >
         {heading}
       </h2>

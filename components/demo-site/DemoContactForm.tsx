@@ -39,7 +39,7 @@ export function DemoContactForm({
     return (
       <div className="rounded-[var(--demo-radius)] border border-[var(--demo-border)] bg-[var(--demo-surface)] p-5 text-sm text-[var(--demo-text)]">
         {productionMode
-          ? "Thanks — your message has been sent."
+          ? "Thanks. Your message has been sent."
           : "Demo form — this would send an enquiry once the site is live."}
       </div>
     );

@@ -13,6 +13,8 @@ import { generateWebsiteStrategy } from "./strategy";
 import { generateWebsiteCopy } from "./copy";
 import { runSiteDirector } from "./director";
 import { runDemoQualityCheck } from "./quality-check";
+import { runPresentationQualityReview } from "./presentation-review";
+import { computeSendReadiness } from "./send-readiness";
 import { generateDemoSlug } from "./slug";
 import { saveDemo, saveDemoAssets, getDemoByBusinessId, getDemoReviews } from "./store";
 import { buildDemoReviews } from "./reviews";
@@ -43,6 +45,8 @@ export async function buildDemo(business: Business): Promise<Demo> {
     production_mode: false,
     failure_reason: null,
     quality_check: null,
+    presentation_review: null,
+    send_readiness: null,
     created_at: now,
     updated_at: now,
   };
@@ -99,11 +103,15 @@ export async function buildDemo(business: Business): Promise<Demo> {
     const reviews = buildDemoReviews();
     const { config } = await runSiteDirector(finalProfile, strategy, assets, reviews);
     const qualityCheck = runDemoQualityCheck(finalProfile, copy, config, assets);
+    const presentationReview = await runPresentationQualityReview(finalProfile, copy, config);
+    const sendReadiness = computeSendReadiness(qualityCheck, presentationReview);
 
     demo = {
       ...demo,
       site_director_config: config,
       quality_check: qualityCheck,
+      presentation_review: presentationReview,
+      send_readiness: sendReadiness,
       status: "DRAFT",
       updated_at: new Date().toISOString(),
     };
@@ -153,9 +161,13 @@ export async function regenerateDemoStage(demo: Demo, stage: RegenerateStage): P
     if (updated.business_profile && updated.website_copy && updated.site_director_config) {
       const { getDemoAssets } = await import("./store");
       const assets = await getDemoAssets(demo.id);
+      const qualityCheck = runDemoQualityCheck(updated.business_profile, updated.website_copy, updated.site_director_config, assets);
+      const presentationReview = await runPresentationQualityReview(updated.business_profile, updated.website_copy, updated.site_director_config);
       updated = {
         ...updated,
-        quality_check: runDemoQualityCheck(updated.business_profile, updated.website_copy, updated.site_director_config, assets),
+        quality_check: qualityCheck,
+        presentation_review: presentationReview,
+        send_readiness: computeSendReadiness(qualityCheck, presentationReview),
       };
     }
 

@@ -38,6 +38,14 @@ export type ContentRichness = "RICH" | "GOOD" | "LIMITED" | "SPARSE";
 // which variants suit a shorter vs fuller site.
 export type ContentDensity = "minimal" | "standard" | "rich";
 
+// How the business's location should be presented (V2.3). Deterministic,
+// derived in profile.ts from archetype + confirmed address — never chosen by
+// AI. A trade with a confirmed Google address is very often a home/
+// registered address, not a customer-facing premises, so it must not get an
+// exact map pin by default; a premises-based professional/retail business
+// with a confirmed address should.
+export type LocationMode = "physical_location" | "service_area" | "multiple_locations" | "location_hidden";
+
 export type FactStatus = "CONFIRMED" | "INFERRED" | "UNKNOWN";
 
 export interface Fact<T> {
@@ -74,6 +82,9 @@ export interface DemoBusinessProfile {
   conversion_model: ConversionModel;
   content_richness: ContentRichness;
   data_richness_score: number; // 0-100, see lib/demo/richness.ts
+  location_mode: LocationMode;
+  latitude: number | null;
+  longitude: number | null;
   address: Fact<string>;
   town_city: Fact<string>;
   postcode: Fact<string>;
@@ -266,11 +277,35 @@ export type DemoPotentialTier = "EXCELLENT DEMO" | "GOOD DEMO" | "POSSIBLE" | "L
 
 export type DemoQualityStatus = "READY" | "NEEDS_REVIEW" | "NOT_READY";
 
+// V2.3: this is conceptually the "TechnicalQualityCheck" from the spec —
+// objective, deterministic checks (missing CTA, empty section, em dash,
+// broken/placeholder content). Kept as DemoQualityCheck/quality_check for
+// the type name and DB column since it predates the rename and nothing
+// about its shape or purpose actually changed.
 export interface DemoQualityCheck {
   status: DemoQualityStatus;
   issues: string[]; // human-readable, e.g. "Em dash found in hero_supporting_text"
   checkedAt: string;
 }
+
+// V2.3: PresentationQualityReview — a bounded, structured-output Claude call
+// (see lib/demo/presentation-review.ts) that looks at the same things a
+// human visually reviewing the demo would flag: does it look AI-generated/
+// templated, is the composition varied, does it suit this archetype, is
+// imagery used well. It never modifies anything — findings are advisory
+// text tied to a 0-100 score, exactly like TechnicalQualityCheck is advisory.
+// The "AIAppearanceAudit" concept from the spec is folded in here as
+// ai_appearance_findings rather than a separate AI call, to keep generation
+// latency/cost bounded to one extra call instead of two near-identical ones.
+export interface PresentationQualityReview {
+  score: number; // 0-100 — did the design make good use of what was available, not a feature-count tally
+  strengths: string[];
+  findings: string[]; // things that would make this feel AI-generated/templated to a business owner
+  ai_appearance_findings: string[]; // specifically: repetitive structure, generic phrasing, filler sections, etc.
+  checkedAt: string;
+}
+
+export type SendReadiness = "READY_TO_SEND" | "NEEDS_VISUAL_REVIEW" | "NOT_READY";
 
 export interface Demo {
   id: string;
@@ -291,6 +326,8 @@ export interface Demo {
   production_mode: boolean;
   failure_reason: string | null;
   quality_check: DemoQualityCheck | null;
+  presentation_review: PresentationQualityReview | null;
+  send_readiness: SendReadiness | null;
   created_at: string;
   updated_at: string;
 }

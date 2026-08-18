@@ -16,7 +16,7 @@ export function Process({ ctx, variant }: { ctx: DemoRenderContext; variant: Pro
             <div key={step} className={variant === "numbered" ? "flex items-start gap-4" : "text-center sm:text-left"}>
               <span
                 style={{ fontFamily: "var(--demo-font-heading)" }}
-                className="block text-3xl font-normal text-[var(--demo-accent)]"
+                className="block text-3xl font-medium text-[var(--demo-accent)]"
               >
                 {String(i + 1).padStart(2, "0")}
               </span>

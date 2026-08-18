@@ -103,6 +103,7 @@ function stripEmDashes(copy: WebsiteCopy): WebsiteCopy {
   const clean = <T,>(v: T): T => (typeof v === "string" ? (stripEmDashesFromString(v) as unknown as T) : v);
   return {
     ...copy,
+    navigation_labels: copy.navigation_labels.map(clean),
     hero_eyebrow: copy.hero_eyebrow ? stripEmDashesFromString(copy.hero_eyebrow) : copy.hero_eyebrow,
     hero_headline: clean(copy.hero_headline),
     hero_supporting_text: clean(copy.hero_supporting_text),

@@ -15,7 +15,7 @@ export function WhoWeHelp({ ctx, variant }: { ctx: DemoRenderContext; variant: W
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {audiences.map((a) => (
               <div key={a} className="rounded-[var(--demo-radius)] border border-[var(--demo-border)] bg-[var(--demo-bg)] p-6 text-center">
-                <p style={{ fontFamily: "var(--demo-font-heading)" }} className="text-lg font-normal text-[var(--demo-text)]">
+                <p style={{ fontFamily: "var(--demo-font-heading)" }} className="text-lg font-medium text-[var(--demo-text)]">
                   {a}
                 </p>
               </div>
@@ -24,7 +24,7 @@ export function WhoWeHelp({ ctx, variant }: { ctx: DemoRenderContext; variant: W
         ) : (
           <div className="flex flex-wrap gap-x-10 gap-y-4">
             {audiences.map((a) => (
-              <p key={a} style={{ fontFamily: "var(--demo-font-heading)" }} className="text-xl font-normal text-[var(--demo-text)]">
+              <p key={a} style={{ fontFamily: "var(--demo-font-heading)" }} className="text-xl font-medium text-[var(--demo-text)]">
                 {a}
               </p>
             ))}
