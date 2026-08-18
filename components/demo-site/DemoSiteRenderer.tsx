@@ -16,7 +16,6 @@ import { WhoWeHelp } from "./WhoWeHelp";
 import { Expertise } from "./Expertise";
 import { Process } from "./Process";
 import { Reviews } from "./Reviews";
-import { ServiceAreas } from "./ServiceAreas";
 import { Faq } from "./Faq";
 import { Cta } from "./Cta";
 import { Contact } from "./Contact";
@@ -65,8 +64,6 @@ export function DemoSiteRenderer({
             return <Process key={i} ctx={ctx} variant={section.variant} />;
           case "reviews":
             return <Reviews key={i} ctx={ctx} variant={section.variant} />;
-          case "service-areas":
-            return <ServiceAreas key={i} ctx={ctx} variant={section.variant} />;
           case "faq":
             return <Faq key={i} ctx={ctx} />;
           case "cta":

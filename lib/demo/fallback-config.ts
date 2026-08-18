@@ -2,9 +2,9 @@
 // unavailable, or returns invalid/unsupported JSON. Website generation must
 // never depend entirely on AI. Built from the SAME composition engine the
 // real director uses (composition.ts) so a fallback demo is still properly
-// differentiated by archetype/composition, not one generic template.
+// differentiated by archetype/composition/density, not one generic template.
 
-import { chooseCompositionStrategy, sectionSkeleton } from "./composition";
+import { chooseCompositionStrategy, chooseContentDensity, sectionSkeleton } from "./composition";
 import { archetypeMeta } from "./industry";
 import type {
   CompositionStrategy, DemoAsset, DemoBusinessProfile, HeroVariant, PaletteId, SectionConfig, SiteDirectorConfig, ThemeId,
@@ -20,31 +20,31 @@ const FAMILY_THEME: Record<string, { theme: ThemeId; palette: PaletteId }> = {
 
 function defaultHeroVariant(strategy: CompositionStrategy): HeroVariant {
   switch (strategy) {
-    case "portfolio_led":
-    case "visual_first":
-      return "split-image";
     case "professional_authority":
     case "minimal_professional":
       return "professional-authority";
-    case "conversion_first":
-      return "minimal";
+    case "portfolio_led":
+    case "visual_first":
+      return "cinematic";
     default:
-      return "trust-focused";
+      return "editorial-split";
   }
 }
 
-function defaultVariant(type: SectionConfig["type"], strategy: CompositionStrategy): SectionConfig {
+function defaultVariant(type: SectionConfig["type"], strategy: CompositionStrategy, serviceCount: number): SectionConfig {
   switch (type) {
     case "hero":
       return { type, variant: defaultHeroVariant(strategy) };
     case "trust-bar":
       return { type, variant: strategy === "professional_authority" || strategy === "minimal_professional" ? "professional" : "google-rating" };
     case "services":
-      return { type, variant: strategy === "portfolio_led" || strategy === "visual_first" ? "image-cards" : "clean-cards" };
+      if (serviceCount >= 5) return { type, variant: "grid" };
+      if (serviceCount <= 2) return { type, variant: "feature-panels" };
+      return { type, variant: "editorial-rows" };
     case "gallery":
       return { type, variant: strategy === "portfolio_led" ? "masonry" : "grid" };
     case "about":
-      return { type, variant: strategy === "minimal_professional" ? "text-focused" : "trust-led" };
+      return { type, variant: strategy === "minimal_professional" ? "compact-story" : "trust-led" };
     case "who-we-help":
       return { type, variant: "simple-columns" };
     case "expertise":
@@ -53,8 +53,6 @@ function defaultVariant(type: SectionConfig["type"], strategy: CompositionStrate
       return { type, variant: "three-step" };
     case "reviews":
       return { type, variant: "cards" };
-    case "service-areas":
-      return { type, variant: "compact" };
     case "faq":
       return { type, variant: "accordion" };
     case "cta":
@@ -70,17 +68,20 @@ export function fallbackSiteDirectorConfig(
   reviewTextCount: number
 ): SiteDirectorConfig {
   const strategy = chooseCompositionStrategy(profile, assets, reviewTextCount);
-  const skeleton = sectionSkeleton(strategy);
+  const density = chooseContentDensity(profile);
+  const skeleton = sectionSkeleton(strategy, density);
   const { theme, palette } = FAMILY_THEME[profile.industry_family] ?? FAMILY_THEME.generic_local_service;
+  const serviceCount = Math.max(profile.confirmed_services.length, 1);
 
   return {
     industryFamily: profile.industry_family,
     businessArchetype: profile.business_archetype,
     compositionStrategy: strategy,
+    contentDensity: density,
     theme,
     palette,
     navVariant: "standard",
     footerVariant: archetypeMeta(profile.business_archetype).professionalSections ? "compact" : "standard",
-    sections: skeleton.map((type) => defaultVariant(type, strategy)),
+    sections: skeleton.map((type) => defaultVariant(type, strategy, serviceCount)),
   };
 }

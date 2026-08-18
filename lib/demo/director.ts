@@ -8,7 +8,7 @@
 // deterministic config so rendering never depends entirely on AI.
 
 import Anthropic from "@anthropic-ai/sdk";
-import { chooseCompositionStrategy, sectionSkeleton } from "./composition";
+import { chooseCompositionStrategy, chooseContentDensity, sectionSkeleton } from "./composition";
 import { archetypeMeta } from "./industry";
 import { describeProfileForPrompt } from "./prompt-context";
 import { fallbackSiteDirectorConfig } from "./fallback-config";
@@ -24,17 +24,18 @@ const PALETTE_IDS: PaletteId[] = ["slate-blue", "charcoal-gold", "forest-neutral
 const NAV_VARIANTS = ["standard", "transparent-overlay", "compact"] as const;
 const FOOTER_VARIANTS = ["standard", "compact"] as const;
 
+// Deliberately few, strong variants per section (V2.2: "3 excellent
+// options beats 10 average ones") rather than exhaustive coverage.
 const SECTION_VARIANTS: Record<SectionConfig["type"], readonly string[]> = {
-  hero: ["full-image", "split-image", "trust-focused", "minimal", "professional-authority"],
+  hero: ["cinematic", "editorial-split", "professional-authority"],
   "trust-bar": ["google-rating", "review-stats", "simple", "professional"],
-  services: ["image-cards", "clean-cards", "alternating-rows", "compact-grid"],
+  services: ["editorial-rows", "feature-panels", "grid"],
   gallery: ["masonry", "grid", "featured-project"],
-  about: ["split-image", "text-focused", "trust-led"],
+  about: ["editorial", "trust-led", "compact-story"],
   "who-we-help": ["audience-cards", "simple-columns"],
   expertise: ["clean-list", "cards"],
   process: ["three-step", "numbered"],
   reviews: ["cards", "featured-grid", "simple-carousel"],
-  "service-areas": ["list", "compact", "map-style"],
   faq: ["accordion"],
   cta: ["full-width", "image-background", "simple", "consultation"],
   contact: ["standard", "split", "compact"],
@@ -101,7 +102,8 @@ export async function runSiteDirector(
   reviews: DemoReview[]
 ): Promise<{ config: SiteDirectorConfig; usedFallback: boolean }> {
   const compositionStrategy = chooseCompositionStrategy(profile, assets, reviews.length);
-  const skeleton = sectionSkeleton(compositionStrategy);
+  const contentDensity = chooseContentDensity(profile);
+  const skeleton = sectionSkeleton(compositionStrategy, contentDensity);
   const meta = archetypeMeta(profile.business_archetype);
   const fallback = fallbackSiteDirectorConfig(profile, assets, reviews.length);
 
@@ -156,6 +158,7 @@ export async function runSiteDirector(
       industryFamily: profile.industry_family,
       businessArchetype: profile.business_archetype,
       compositionStrategy,
+      contentDensity,
       theme: validated.theme,
       palette: validated.palette,
       navVariant: validated.navVariant,

@@ -1,15 +1,18 @@
 // Orchestrates the full "Build Demo" pipeline. This is the only place that
-// wires profile -> potential -> assets -> strategy -> copy -> director ->
-// persistence together. Never called on page view — only on explicit
-// user action (POST /api/demos or a regenerate-stage call).
+// wires profile -> enrichment -> richness -> assets -> strategy -> copy ->
+// director -> quality check -> persistence together. Never called on page
+// view — only on explicit user action (POST /api/demos or a
+// regenerate-stage call).
 
 import type { Business } from "@/lib/types";
-import { buildDemoBusinessProfile } from "./profile";
+import { buildBaseProfile, applyEnrichment, finalizeRichness } from "./profile";
+import { enrichFromWebsite } from "./enrichment";
 import { calculateDemoPotential } from "./potential";
 import { fetchGooglePlacesPhotoRefs, buildAssetsFromPlacesPhotos, buildPlaceholderAssets } from "./assets";
 import { generateWebsiteStrategy } from "./strategy";
 import { generateWebsiteCopy } from "./copy";
 import { runSiteDirector } from "./director";
+import { runDemoQualityCheck } from "./quality-check";
 import { generateDemoSlug } from "./slug";
 import { saveDemo, saveDemoAssets, getDemoByBusinessId, getDemoReviews } from "./store";
 import { buildDemoReviews } from "./reviews";
@@ -39,6 +42,7 @@ export async function buildDemo(business: Business): Promise<Demo> {
     custom_domain: null,
     production_mode: false,
     failure_reason: null,
+    quality_check: null,
     created_at: now,
     updated_at: now,
   };
@@ -47,12 +51,22 @@ export async function buildDemo(business: Business): Promise<Demo> {
   await saveDemo(demo);
 
   try {
-    const profile = buildDemoBusinessProfile(business);
+    let profile = buildBaseProfile(business);
     const potential = calculateDemoPotential(business);
+
+    // Enrichment — bounded first-party website crawl. Best-effort: a slow
+    // or unreachable site just means no enrichment, not a failed build.
+    if (profile.website_url.value) {
+      try {
+        const enrichment = await enrichFromWebsite(profile.website_url.value);
+        profile = applyEnrichment(profile, enrichment);
+      } catch {
+        // enrichment is best-effort — never block the build on it
+      }
+    }
 
     demo = {
       ...demo,
-      business_profile: profile,
       demo_potential_score: potential.score,
       demo_potential_tier: potential.tier,
       status: "GENERATING",
@@ -70,19 +84,26 @@ export async function buildDemo(business: Business): Promise<Demo> {
       : buildPlaceholderAssets(demo.id, business.id, profile.industry_family);
     await saveDemoAssets(demo.id, assets);
 
-    const strategy = await generateWebsiteStrategy(profile);
+    const finalProfile = finalizeRichness(profile, assets);
+    demo = { ...demo, business_profile: finalProfile, updated_at: new Date().toISOString() };
+    await saveDemo(demo);
+
+    const strategy = await generateWebsiteStrategy(finalProfile);
     demo = { ...demo, website_strategy: strategy, updated_at: new Date().toISOString() };
     await saveDemo(demo);
 
-    const copy = await generateWebsiteCopy(profile, strategy);
+    const copy = await generateWebsiteCopy(finalProfile, strategy);
     demo = { ...demo, website_copy: copy, updated_at: new Date().toISOString() };
     await saveDemo(demo);
 
     const reviews = buildDemoReviews();
-    const { config } = await runSiteDirector(profile, strategy, assets, reviews);
+    const { config } = await runSiteDirector(finalProfile, strategy, assets, reviews);
+    const qualityCheck = runDemoQualityCheck(finalProfile, copy, config, assets);
+
     demo = {
       ...demo,
       site_director_config: config,
+      quality_check: qualityCheck,
       status: "DRAFT",
       updated_at: new Date().toISOString(),
     };
@@ -127,6 +148,15 @@ export async function regenerateDemoStage(demo: Demo, stage: RegenerateStage): P
       const reviews = await getDemoReviews(demo.id);
       const { config } = await runSiteDirector(demo.business_profile, demo.website_strategy, assets, reviews);
       updated = { ...updated, site_director_config: config };
+    }
+
+    if (updated.business_profile && updated.website_copy && updated.site_director_config) {
+      const { getDemoAssets } = await import("./store");
+      const assets = await getDemoAssets(demo.id);
+      updated = {
+        ...updated,
+        quality_check: runDemoQualityCheck(updated.business_profile, updated.website_copy, updated.site_director_config, assets),
+      };
     }
 
     updated = { ...updated, status: "DRAFT", updated_at: new Date().toISOString() };

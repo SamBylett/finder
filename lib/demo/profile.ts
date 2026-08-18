@@ -1,13 +1,20 @@
 // Assembles a DemoBusinessProfile purely from data we already have on the
 // Business record (Google Places + website analysis). No invention: fields
 // we don't have real data for are left UNKNOWN, never guessed.
+//
+// Building a profile is now three steps (see generate.ts):
+//   1. buildBaseProfile()      — from the Business record only
+//   2. applyEnrichment()       — merges lib/demo/enrichment.ts results in
+//   3. finalizeRichness()      — computes DataRichnessScore once assets are known
 
 import type { Business } from "@/lib/types";
 import { fact } from "./types";
-import type { ContentRichness, DemoBusinessProfile } from "./types";
+import type { DemoAsset, DemoBusinessProfile } from "./types";
 import { archetypeMeta, resolveBusinessArchetype } from "./industry";
+import type { EnrichmentResult } from "./enrichment";
+import { calculateDataRichness } from "./richness";
 
-export function buildDemoBusinessProfile(business: Business): DemoBusinessProfile {
+export function buildBaseProfile(business: Business): Omit<DemoBusinessProfile, "content_richness" | "data_richness_score"> {
   // Google's primary type can be generic/wrong (e.g. "General Contractor" for
   // an actual landscaper) — checking the business name too catches cases the
   // category alone misses, without ever inventing a category that wasn't there.
@@ -21,14 +28,10 @@ export function buildDemoBusinessProfile(business: Business): DemoBusinessProfil
     business_name: fact.confirmed(business.business_name, "google_places"),
     source_category: sourceCategoryFact,
     category: sourceCategoryFact,
-    // Deterministic, NOT AI-generated — a customer-facing label derived from
-    // the resolved archetype, never Google's raw (often generic/misleading)
-    // category text. See lib/demo/industry.ts ARCHETYPES.
     marketing_category: meta.marketingCategoryLabel,
     industry_family: meta.family,
     business_archetype: archetype,
     conversion_model: meta.conversionModel,
-    content_richness: computeContentRichness(business),
     address: fact.confirmed(business.address, "google_places"),
     town_city: fact.confirmed(business.town_city, "google_places"),
     postcode: business.postcode ? fact.confirmed(business.postcode, "google_places") : fact.unknown(),
@@ -44,31 +47,55 @@ export function buildDemoBusinessProfile(business: Business): DemoBusinessProfil
     google_review_count: fact.confirmed(business.google_review_count, "google_places"),
     facebook_url: business.facebook_url ? fact.confirmed(business.facebook_url, "website") : fact.unknown(),
     instagram_url: business.instagram_url ? fact.confirmed(business.instagram_url, "website") : fact.unknown(),
-    // We don't scrape a structured services list in V1's website analyzer —
-    // leaving this empty (rather than guessing from the category) keeps the
-    // "never invent services" rule intact. Known limitation: until the
-    // analyzer extracts a real services list, copy generation falls back to
-    // conservative category-derived descriptions (see strategy.ts/copy.ts).
     confirmed_services: [],
     service_areas: [],
     business_description: fact.unknown(),
+    trust_credentials: [],
+    established_year: fact.unknown(),
+    customer_types: [],
     website_weaknesses: business.detected_issues.map((i) => i.label),
     source_urls: [business.website_url, business.google_maps_url].filter((u): u is string => Boolean(u)),
   };
 }
 
-// How much real material there is to work with — drives whether sections
-// that need substance get shown at full size, compact, or omitted entirely
-// (a shorter credible site beats a longer padded one).
-function computeContentRichness(business: Business): ContentRichness {
-  let score = 0;
-  if (business.phone) score += 1;
-  if (business.email) score += 1;
-  if (business.website_url) score += 1;
-  if (business.google_review_count >= 20) score += 2;
-  else if (business.google_review_count >= 5) score += 1;
+// Merges lib/demo/enrichment.ts output in. Only ever adds CONFIRMED facts
+// that were actually found on the business's own site — never inference,
+// never a fallback guess.
+export function applyEnrichment(
+  profile: Omit<DemoBusinessProfile, "content_richness" | "data_richness_score">,
+  enrichment: EnrichmentResult
+): Omit<DemoBusinessProfile, "content_richness" | "data_richness_score"> {
+  const next = { ...profile };
 
-  if (score >= 4) return "rich";
-  if (score >= 2) return "moderate";
-  return "sparse";
+  if (enrichment.services.length > 0) {
+    next.confirmed_services = enrichment.services.map((s) => s.value);
+    next.source_urls = [...new Set([...next.source_urls, ...enrichment.services.map((s) => s.sourceUrl)])];
+  }
+
+  if (enrichment.descriptionParagraphs.length > 0) {
+    const best = enrichment.descriptionParagraphs[0];
+    next.business_description = fact.confirmed(best.value, best.sourceUrl);
+  }
+
+  if (enrichment.trustSignals.length > 0) {
+    next.trust_credentials = enrichment.trustSignals.map((s) => s.value);
+  }
+
+  if (enrichment.establishedYear) {
+    next.established_year = fact.confirmed(enrichment.establishedYear.value, enrichment.establishedYear.sourceUrl);
+  }
+
+  if (enrichment.customerTypes.length > 0) {
+    next.customer_types = enrichment.customerTypes.map((s) => s.value);
+  }
+
+  return next;
+}
+
+export function finalizeRichness(
+  profile: Omit<DemoBusinessProfile, "content_richness" | "data_richness_score">,
+  assets: DemoAsset[]
+): DemoBusinessProfile {
+  const { score, tier } = calculateDataRichness(profile, assets);
+  return { ...profile, data_richness_score: score, content_richness: tier };
 }

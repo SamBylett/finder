@@ -22,6 +22,19 @@ const STATUS_LABELS: Record<DemoStatus, string> = {
   FAILED: "Failed",
 };
 
+function qualityBadgeClasses(status: string): string {
+  switch (status) {
+    case "READY":
+      return "bg-green-50 text-green-700 border border-green-200";
+    case "NEEDS_REVIEW":
+      return "bg-amber-50 text-amber-700 border border-amber-200";
+    case "NOT_READY":
+      return "bg-red-50 text-red-700 border border-red-200";
+    default:
+      return "bg-slate-100 text-slate-500 border border-slate-200";
+  }
+}
+
 function statusBadgeClasses(status: DemoStatus): string {
   switch (status) {
     case "FAILED":
@@ -68,6 +81,7 @@ export default async function DemosPage() {
               <tr>
                 <Th>Business</Th>
                 <Th>Status</Th>
+                <Th>Quality</Th>
                 <Th>Sharing</Th>
                 <Th>Demo Potential</Th>
                 <Th>Updated</Th>
@@ -98,6 +112,18 @@ function DemoRow({ demo }: { demo: Demo }) {
         <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${statusBadgeClasses(demo.status)}`}>
           {STATUS_LABELS[demo.status]}
         </span>
+      </td>
+      <td className="px-4 py-3">
+        {demo.quality_check ? (
+          <span
+            className={`rounded-full px-2 py-0.5 text-xs font-medium ${qualityBadgeClasses(demo.quality_check.status)}`}
+            title={demo.quality_check.issues.join("\n") || "No issues found"}
+          >
+            {demo.quality_check.status.replace("_", " ")}
+          </span>
+        ) : (
+          <span className="text-xs text-slate-400">—</span>
+        )}
       </td>
       <td className="px-4 py-3 text-slate-600">{demo.sharing_enabled ? "Enabled" : "Off"}</td>
       <td className="px-4 py-3">

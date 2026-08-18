@@ -1,10 +1,9 @@
 import type { DemoRenderContext } from "@/lib/demo/render-context";
 import { factValue } from "@/lib/demo/render-context";
-import { Container, PrimaryButton, phoneHref } from "./primitives";
+import { BusinessName, Container, PrimaryButton, phoneHref } from "./primitives";
 import type { NavVariant } from "@/lib/demo/types";
 
 export function Nav({ ctx, variant }: { ctx: DemoRenderContext; variant: NavVariant }) {
-  const name = factValue(ctx.profile.business_name) ?? "Business";
   const phone = factValue(ctx.profile.phone);
   const labels = ctx.copy.navigation_labels.slice(0, 5);
 
@@ -18,7 +17,7 @@ export function Nav({ ctx, variant }: { ctx: DemoRenderContext; variant: NavVari
       }`}
     >
       <Container className={`flex items-center justify-between ${compact ? "py-2" : "py-4"}`}>
-        <span className="text-sm font-semibold uppercase tracking-[0.15em]">{name}</span>
+        <BusinessName profile={ctx.profile} className="text-lg font-semibold" />
         <nav className="hidden gap-8 text-sm md:flex">
           {labels.map((label) => (
             <span key={label} className="opacity-80">{label}</span>

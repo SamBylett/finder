@@ -71,6 +71,21 @@ export function DemoActions({ business, demo: initialDemo }: { business: Busines
             {STATUS_LABELS[demo.status]}
           </span>
 
+          {demo.quality_check && (
+            <span
+              className={`rounded-full px-3 py-1 text-xs font-medium ${
+                demo.quality_check.status === "READY"
+                  ? "border border-green-200 bg-green-50 text-green-700"
+                  : demo.quality_check.status === "NEEDS_REVIEW"
+                  ? "border border-amber-200 bg-amber-50 text-amber-700"
+                  : "border border-red-200 bg-red-50 text-red-700"
+              }`}
+              title={demo.quality_check.issues.join("\n") || "No issues found"}
+            >
+              {demo.quality_check.status.replace("_", " ")}
+            </span>
+          )}
+
           {demo.status !== "FAILED" && (
             <Link
               href={`/demo/${demo.slug}`}

@@ -27,10 +27,16 @@ export type BusinessArchetype =
 export type ConversionModel =
   | "quote_request" | "emergency_call" | "consultation" | "callback" | "appointment" | "enquiry" | "booking";
 
-// How much real material we have to work with. Drives whether sections that
-// need substance (About, gallery, service areas) get shown at full size,
-// compact, or omitted — see lib/demo/director.ts and the copy prompts.
-export type ContentRichness = "rich" | "moderate" | "sparse";
+// How much real material we have to work with, per the DataRichnessScore
+// (0-100, see lib/demo/richness.ts). Drives whether sections that need
+// substance (About, gallery, service areas) get shown at full size,
+// compact, or omitted — see lib/demo/composition.ts and the copy prompts.
+export type ContentRichness = "RICH" | "GOOD" | "LIMITED" | "SPARSE";
+
+// How much content the site should carry overall — derived from
+// ContentRichness, consumed by composition.ts to decide section count and
+// which variants suit a shorter vs fuller site.
+export type ContentDensity = "minimal" | "standard" | "rich";
 
 export type FactStatus = "CONFIRMED" | "INFERRED" | "UNKNOWN";
 
@@ -67,6 +73,7 @@ export interface DemoBusinessProfile {
   business_archetype: BusinessArchetype;
   conversion_model: ConversionModel;
   content_richness: ContentRichness;
+  data_richness_score: number; // 0-100, see lib/demo/richness.ts
   address: Fact<string>;
   town_city: Fact<string>;
   postcode: Fact<string>;
@@ -81,6 +88,12 @@ export interface DemoBusinessProfile {
   confirmed_services: string[]; // only ever populated from confirmed sources
   service_areas: string[];
   business_description: Fact<string>;
+  // Enrichment-derived facts (see lib/demo/enrichment.ts) — crawled from the
+  // business's own first-party website only, each kept as plain confirmed
+  // strings (provenance/confidence already filtered at extraction time).
+  trust_credentials: string[];
+  established_year: Fact<string>;
+  customer_types: string[];
   website_weaknesses: string[]; // pulled from existing detected_issues / analysis_summary
   source_urls: string[];
 }
@@ -188,13 +201,14 @@ export type ThemeId = "clean-light" | "premium-dark" | "bold-local" | "natural";
 export type PaletteId = "slate-blue" | "charcoal-gold" | "forest-neutral" | "navy-sand" | "graphite-orange";
 
 export type NavVariant = "standard" | "transparent-overlay" | "compact";
-export type HeroVariant = "full-image" | "split-image" | "trust-focused" | "minimal" | "professional-authority";
+// Consolidated to 3 deliberately strong variants (was 5 weaker ones) — see
+// V2.2: "3 excellent hero variants beats 10 average ones".
+export type HeroVariant = "cinematic" | "editorial-split" | "professional-authority";
 export type TrustBarVariant = "google-rating" | "review-stats" | "simple" | "professional";
-export type ServicesVariant = "image-cards" | "clean-cards" | "alternating-rows" | "compact-grid";
+export type ServicesVariant = "editorial-rows" | "feature-panels" | "grid";
 export type GalleryVariant = "masonry" | "grid" | "featured-project";
-export type AboutVariant = "split-image" | "text-focused" | "trust-led";
+export type AboutVariant = "editorial" | "trust-led" | "compact-story";
 export type ReviewsVariant = "cards" | "featured-grid" | "simple-carousel";
-export type ServiceAreasVariant = "list" | "compact" | "map-style";
 export type FaqVariant = "accordion";
 export type CtaVariant = "full-width" | "image-background" | "simple" | "consultation";
 export type ContactVariant = "standard" | "split" | "compact";
@@ -213,7 +227,6 @@ export type SectionConfig =
   | { type: "expertise"; variant: ExpertiseVariant }
   | { type: "process"; variant: ProcessVariant }
   | { type: "reviews"; variant: ReviewsVariant }
-  | { type: "service-areas"; variant: ServiceAreasVariant }
   | { type: "faq"; variant: FaqVariant }
   | { type: "cta"; variant: CtaVariant }
   | { type: "contact"; variant: ContactVariant };
@@ -230,6 +243,7 @@ export interface SiteDirectorConfig {
   industryFamily: IndustryFamily;
   businessArchetype: BusinessArchetype;
   compositionStrategy: CompositionStrategy;
+  contentDensity: ContentDensity;
   theme: ThemeId;
   palette: PaletteId;
   navVariant: NavVariant;
@@ -250,6 +264,14 @@ export type DemoStatus =
 
 export type DemoPotentialTier = "EXCELLENT DEMO" | "GOOD DEMO" | "POSSIBLE" | "LOW VALUE";
 
+export type DemoQualityStatus = "READY" | "NEEDS_REVIEW" | "NOT_READY";
+
+export interface DemoQualityCheck {
+  status: DemoQualityStatus;
+  issues: string[]; // human-readable, e.g. "Em dash found in hero_supporting_text"
+  checkedAt: string;
+}
+
 export interface Demo {
   id: string;
   business_id: string;
@@ -268,6 +290,7 @@ export interface Demo {
   custom_domain: string | null;
   production_mode: boolean;
   failure_reason: string | null;
+  quality_check: DemoQualityCheck | null;
   created_at: string;
   updated_at: string;
 }
