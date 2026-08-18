@@ -91,7 +91,11 @@ function stripBannedFaq(faq: { question: string; answer: string }[]): { question
 
 // Deterministic safety net — the prompt asks for no em dashes, but LLMs
 // slip. Only touches generated display copy strings, never URLs/names/data.
-function stripEmDashesFromString(text: string): string {
+// Exported so strategy.ts can apply the same sanitisation (WebsiteStrategy
+// isn't rendered on the public page, but it's stored/queryable data and the
+// V2.3 acceptance test scans generated content broadly, not just what's
+// currently wired up to a component).
+export function stripEmDashesFromString(text: string): string {
   // "word — word" -> "word, word"; "word—word" (no surrounding spaces) -> "word - word"
   return text
     .replace(/\s+[—–]\s+/g, ", ")

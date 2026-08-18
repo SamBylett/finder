@@ -35,7 +35,6 @@ export default async function DemoPage({ params }: { params: Promise<{ slug: str
   const ctx: DemoRenderContext = {
     profile: demo.business_profile,
     copy: demo.website_copy,
-    strategy: demo.website_strategy,
     assets: allAssets.filter((a) => a.selected),
     reviews,
     config: demo.site_director_config,

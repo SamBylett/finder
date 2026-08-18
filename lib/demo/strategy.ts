@@ -7,6 +7,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import type { DemoBusinessProfile, WebsiteStrategy } from "./types";
 import { describeProfileForPrompt } from "./prompt-context";
 import { archetypeMeta } from "./industry";
+import { stripEmDashesFromString } from "./copy";
 
 const MODEL = "claude-sonnet-5";
 
@@ -91,5 +92,24 @@ export async function generateWebsiteStrategy(profile: DemoBusinessProfile): Pro
     throw new Error("Website strategy generation returned no content.");
   }
 
-  return JSON.parse(textBlock.text) as WebsiteStrategy;
+  const parsed = JSON.parse(textBlock.text) as WebsiteStrategy;
+  const clean = (v: string) => stripEmDashesFromString(v);
+  return {
+    ...parsed,
+    positioning: clean(parsed.positioning),
+    target_customer: clean(parsed.target_customer),
+    primary_conversion_goal: clean(parsed.primary_conversion_goal),
+    primary_cta: clean(parsed.primary_cta),
+    secondary_cta: parsed.secondary_cta ? clean(parsed.secondary_cta) : parsed.secondary_cta,
+    trust_signals: parsed.trust_signals.map(clean),
+    priority_services: parsed.priority_services.map(clean),
+    visitor_questions: parsed.visitor_questions.map(clean),
+    messaging_angle: clean(parsed.messaging_angle),
+    page_structure_recommendation: clean(parsed.page_structure_recommendation),
+    tone: clean(parsed.tone),
+    visual_direction: clean(parsed.visual_direction),
+    local_seo_focus: clean(parsed.local_seo_focus),
+    seo_title: clean(parsed.seo_title),
+    seo_description: clean(parsed.seo_description),
+  };
 }
