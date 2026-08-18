@@ -34,6 +34,12 @@ export interface Business {
   email: string | null;
   facebook_url: string | null;
   instagram_url: string | null;
+  linkedin_url: string | null;
+  // Deterministic phone classification (see lib/phone.ts) — never inferred
+  // beyond what the digits themselves prove. "unknown" is the safe default
+  // for anything ambiguous rather than guessing mobile.
+  phone_e164: string | null;
+  phone_type: "mobile" | "landline" | "unknown" | null;
   website_status: WebsiteStatus;
   website_score: number | null; // 0-100, quality of the existing website (if any)
   opportunity_score: number; // 0-100, higher = better prospect

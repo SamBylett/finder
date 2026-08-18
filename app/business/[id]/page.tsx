@@ -6,8 +6,9 @@ import Link from "next/link";
 import type { Business } from "@/lib/types";
 import type { ScoreBreakdownLine } from "@/lib/scoring";
 import type { Demo } from "@/lib/demo/types";
-import { tierBadgeClasses, websiteStatusBadgeClasses, websiteStatusLabel, severityClasses, demoPotentialBadgeClasses } from "@/lib/ui";
+import { tierBadgeClasses, websiteStatusBadgeClasses, websiteStatusLabel, severityClasses, demoPotentialBadgeClasses, outreachTierBadgeClasses } from "@/lib/ui";
 import { DemoActions } from "@/components/DemoActions";
+import { computeOutreachReadiness } from "@/lib/outreach";
 
 interface DetailResponse {
   business: Business;
@@ -125,6 +126,8 @@ function BusinessDetail({ business, breakdown, demo }: { business: Business; bre
         </dl>
       </Section>
 
+      <ContactRoutesSection business={business} />
+
       <Section title="Google reputation">
         <dl className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <Field label="Rating" value={business.google_rating !== null ? `${business.google_rating.toFixed(1)} / 5` : "—"} />
@@ -198,6 +201,59 @@ function BusinessDetail({ business, breakdown, demo }: { business: Business; bre
         )}
       </Section>
     </div>
+  );
+}
+
+// Answers one question the Opportunity Score deliberately no longer does
+// (see lib/outreach.ts): can this business be reached through channels
+// actually used for outreach — never phone calls, mobile is only ever a
+// WhatsApp CANDIDATE, not confirmed WhatsApp.
+function ContactRoutesSection({ business }: { business: Business }) {
+  const outreach = computeOutreachReadiness(business);
+  const { channels } = outreach;
+
+  return (
+    <Section title="Contact routes">
+      <div className="mb-3 flex items-center gap-3">
+        <span className={`rounded-full px-3 py-1 text-sm font-semibold ${outreachTierBadgeClasses(outreach.tier)}`}>
+          {outreach.tier}
+        </span>
+        <span className="text-xs text-slate-500">
+          {outreach.strongRouteCount} usable route{outreach.strongRouteCount === 1 ? "" : "s"} found
+        </span>
+      </div>
+      <dl className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <Field label="Email" value={channels.email ? `FOUND — ${business.email}` : "NOT FOUND"} />
+        <Field
+          label="Mobile"
+          value={channels.mobile ? `FOUND — ${business.phone} (WhatsApp candidate)` : business.phone_type === "landline" ? "Landline only" : "NOT FOUND"}
+        />
+        <Field label="Landline" value={channels.landline ? `FOUND — ${business.phone}` : "NOT FOUND"} />
+        <Field
+          label="Facebook"
+          value={channels.facebook ? (
+            <a href={business.facebook_url!} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">FOUND</a>
+          ) : "NOT FOUND"}
+        />
+        <Field
+          label="Instagram"
+          value={channels.instagram ? (
+            <a href={business.instagram_url!} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">FOUND</a>
+          ) : "NOT FOUND"}
+        />
+        <Field
+          label="LinkedIn"
+          value={channels.linkedin ? (
+            <a href={business.linkedin_url!} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">FOUND</a>
+          ) : "NOT FOUND"}
+        />
+      </dl>
+      <ul className="mt-3 space-y-1">
+        {outreach.reasons.map((r, i) => (
+          <li key={i} className="text-xs text-slate-500">{r}</li>
+        ))}
+      </ul>
+    </Section>
   );
 }
 

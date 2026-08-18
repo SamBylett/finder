@@ -1,4 +1,5 @@
 import type { OpportunityTier, WebsiteStatus } from "@/lib/types";
+import type { OutreachTier } from "@/lib/outreach";
 
 export function tierBadgeClasses(tier: OpportunityTier): string {
   switch (tier) {
@@ -58,6 +59,25 @@ export function demoPotentialBadgeClasses(tier: "EXCELLENT DEMO" | "GOOD DEMO" |
     case "LOW VALUE":
       return "bg-slate-50 text-slate-400 border border-slate-200";
   }
+}
+
+export function outreachTierBadgeClasses(tier: OutreachTier): string {
+  switch (tier) {
+    case "HIGH":
+      return "bg-green-100 text-green-800 border border-green-200";
+    case "GOOD":
+      return "bg-blue-50 text-blue-700 border border-blue-200";
+    case "LIMITED":
+      return "bg-amber-50 text-amber-700 border border-amber-200";
+    case "POOR":
+      return "bg-slate-50 text-slate-400 border border-slate-200";
+  }
+}
+
+export function outreachChannelBadgeClasses(active: boolean): string {
+  return active
+    ? "bg-slate-900 text-white border border-slate-900"
+    : "bg-slate-50 text-slate-300 border border-slate-200";
 }
 
 export function severityClasses(severity: "low" | "medium" | "high"): string {

@@ -9,6 +9,7 @@ import { getWebsiteAnalyzer } from "@/lib/website-analyzer";
 import { scoreBusiness, type ScoreBreakdownLine } from "@/lib/scoring";
 import { mapWithConcurrency } from "@/lib/concurrency";
 import { calculateDemoPotential } from "@/lib/demo/potential";
+import { normalizeAndClassifyUkPhone } from "@/lib/phone";
 
 // How many website analyses run at once. Bounded rather than fully unbounded
 // so a large maxResults doesn't fire e.g. 100 simultaneous outbound fetches —
@@ -60,6 +61,7 @@ export async function runOpportunitySearch(params: SearchParams): Promise<Pipeli
           email: raw.email ?? analysis.contact.email,
           facebook_url: raw.facebook_url ?? analysis.contact.facebookUrl,
           instagram_url: raw.instagram_url ?? analysis.contact.instagramUrl,
+          linkedin_url: raw.linkedin_url ?? analysis.contact.linkedinUrl,
         };
       } else if (raw.facebook_url || raw.instagram_url) {
         websiteStatus = "social_only";
@@ -74,15 +76,15 @@ export async function runOpportunitySearch(params: SearchParams): Promise<Pipeli
         websiteStatus,
         googleRating: raw.google_rating,
         googleReviewCount: raw.google_review_count,
-        email: raw.email,
-        phone: raw.phone,
-        facebookUrl: raw.facebook_url,
-        instagramUrl: raw.instagram_url,
         objectiveChecks,
       });
 
+      const { phone_e164, phone_type } = normalizeAndClassifyUkPhone(raw.phone);
+
       const businessBeforeDemoPotential: Business = {
         ...raw,
+        phone_e164,
+        phone_type,
         website_status: websiteStatus,
         website_score: websiteScore,
         opportunity_score: scoring.opportunityScore,

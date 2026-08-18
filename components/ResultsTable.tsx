@@ -3,11 +3,15 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import type { Business, OpportunityTier } from "@/lib/types";
-import { tierBadgeClasses, websiteStatusBadgeClasses, websiteStatusLabel, demoPotentialBadgeClasses } from "@/lib/ui";
+import { tierBadgeClasses, websiteStatusBadgeClasses, websiteStatusLabel, demoPotentialBadgeClasses, outreachTierBadgeClasses, outreachChannelBadgeClasses } from "@/lib/ui";
 import { businessesToCsv, downloadCsv } from "@/lib/csv";
+import { computeOutreachReadiness } from "@/lib/outreach";
 
-type SortKey = "opportunity_score" | "google_review_count" | "demo_potential_score";
-type FilterKey = "HOT" | "OPPORTUNITY" | "LOW_PRIORITY" | "NO_WEBSITE" | "WEAK_WEBSITE" | "EMAIL_AVAILABLE";
+type SortKey = "opportunity_score" | "google_review_count" | "demo_potential_score" | "outreach_strong_routes";
+type FilterKey =
+  | "HOT" | "OPPORTUNITY" | "LOW_PRIORITY" | "NO_WEBSITE" | "WEAK_WEBSITE"
+  | "HAS_EMAIL" | "HAS_MOBILE" | "HAS_FACEBOOK" | "HAS_INSTAGRAM" | "HAS_LINKEDIN"
+  | "ANY_DIGITAL_ROUTE" | "MULTIPLE_ROUTES" | "LANDLINE_ONLY" | "NO_USABLE_ROUTE" | "OUTREACH_READY";
 
 const FILTERS: { key: FilterKey; label: string }[] = [
   { key: "HOT", label: "HOT" },
@@ -15,7 +19,16 @@ const FILTERS: { key: FilterKey; label: string }[] = [
   { key: "LOW_PRIORITY", label: "LOW PRIORITY" },
   { key: "NO_WEBSITE", label: "No website" },
   { key: "WEAK_WEBSITE", label: "Weak website" },
-  { key: "EMAIL_AVAILABLE", label: "Email available" },
+  { key: "OUTREACH_READY", label: "Outreach ready" },
+  { key: "HAS_EMAIL", label: "Has email" },
+  { key: "HAS_MOBILE", label: "Has mobile / WhatsApp" },
+  { key: "HAS_FACEBOOK", label: "Has Facebook" },
+  { key: "HAS_INSTAGRAM", label: "Has Instagram" },
+  { key: "HAS_LINKEDIN", label: "Has LinkedIn" },
+  { key: "ANY_DIGITAL_ROUTE", label: "Any digital route" },
+  { key: "MULTIPLE_ROUTES", label: "Multiple routes" },
+  { key: "LANDLINE_ONLY", label: "Landline only" },
+  { key: "NO_USABLE_ROUTE", label: "No usable route" },
 ];
 
 export default function ResultsTable({ results }: { results: Business[] }) {
@@ -48,8 +61,10 @@ export default function ResultsTable({ results }: { results: Business[] }) {
 
   const sorted = useMemo(() => {
     const copy = [...filtered];
+    const value = (b: Business) =>
+      sortKey === "outreach_strong_routes" ? computeOutreachReadiness(b).strongRouteCount : b[sortKey];
     copy.sort((a, b) => {
-      const diff = a[sortKey] - b[sortKey];
+      const diff = value(a) - value(b);
       return sortDir === "desc" ? -diff : diff;
     });
     return copy;
@@ -109,48 +124,60 @@ export default function ResultsTable({ results }: { results: Business[] }) {
               <Th>Rating</Th>
               <ThSortable label="Reviews" active={sortKey === "google_review_count"} dir={sortDir} onClick={() => toggleSort("google_review_count")} />
               <Th>Website status</Th>
-              <Th>Email</Th>
-              <Th>Phone</Th>
+              <Th>Contact</Th>
               <ThSortable label="Score" active={sortKey === "opportunity_score"} dir={sortDir} onClick={() => toggleSort("opportunity_score")} />
               <Th>Tier</Th>
               <ThSortable label="Demo Potential" active={sortKey === "demo_potential_score"} dir={sortDir} onClick={() => toggleSort("demo_potential_score")} />
+              <ThSortable label="Outreach" active={sortKey === "outreach_strong_routes"} dir={sortDir} onClick={() => toggleSort("outreach_strong_routes")} />
               <Th>Actions</Th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {sorted.map((b) => (
-              <tr key={b.id} className="hover:bg-slate-50">
-                <td className="px-4 py-3 font-medium text-slate-900">{b.business_name}</td>
-                <td className="px-4 py-3 text-slate-600">{b.town_city}</td>
-                <td className="px-4 py-3 text-slate-600">
-                  {b.google_rating !== null ? `${b.google_rating.toFixed(1)}★` : "—"}
-                </td>
-                <td className="px-4 py-3 text-slate-600">{b.google_review_count}</td>
-                <td className="px-4 py-3">
-                  <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${websiteStatusBadgeClasses(b.website_status)}`}>
-                    {websiteStatusLabel(b.website_status)}
-                  </span>
-                </td>
-                <td className="px-4 py-3 text-slate-600">{b.email ? "Yes" : "—"}</td>
-                <td className="px-4 py-3 text-slate-600">{b.phone ?? "—"}</td>
-                <td className="px-4 py-3 font-semibold text-slate-900">{b.opportunity_score}</td>
-                <td className="px-4 py-3">
-                  <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${tierBadgeClasses(b.opportunity_tier)}`}>
-                    {b.opportunity_tier}
-                  </span>
-                </td>
-                <td className="px-4 py-3">
-                  <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${demoPotentialBadgeClasses(b.demo_potential_tier)}`}>
-                    {b.demo_potential_score} · {b.demo_potential_tier}
-                  </span>
-                </td>
-                <td className="px-4 py-3">
-                  <Link href={`/business/${b.id}`} className="text-sm font-medium text-blue-600 hover:underline">
-                    View details
-                  </Link>
-                </td>
-              </tr>
-            ))}
+            {sorted.map((b) => {
+              const outreach = computeOutreachReadiness(b);
+              return (
+                <tr key={b.id} className="hover:bg-slate-50">
+                  <td className="px-4 py-3 font-medium text-slate-900">{b.business_name}</td>
+                  <td className="px-4 py-3 text-slate-600">{b.town_city}</td>
+                  <td className="px-4 py-3 text-slate-600">
+                    {b.google_rating !== null ? `${b.google_rating.toFixed(1)}★` : "—"}
+                  </td>
+                  <td className="px-4 py-3 text-slate-600">{b.google_review_count}</td>
+                  <td className="px-4 py-3">
+                    <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${websiteStatusBadgeClasses(b.website_status)}`}>
+                      {websiteStatusLabel(b.website_status)}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3">
+                    <ContactIndicators business={b} outreach={outreach} />
+                  </td>
+                  <td className="px-4 py-3 font-semibold text-slate-900">{b.opportunity_score}</td>
+                  <td className="px-4 py-3">
+                    <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${tierBadgeClasses(b.opportunity_tier)}`}>
+                      {b.opportunity_tier}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${demoPotentialBadgeClasses(b.demo_potential_tier)}`}>
+                      {b.demo_potential_score} · {b.demo_potential_tier}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3">
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-xs font-medium ${outreachTierBadgeClasses(outreach.tier)}`}
+                      title={outreach.reasons.join("\n")}
+                    >
+                      {outreach.tier}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3">
+                    <Link href={`/business/${b.id}`} className="text-sm font-medium text-blue-600 hover:underline">
+                      View details
+                    </Link>
+                  </td>
+                </tr>
+              );
+            })}
             {sorted.length === 0 && (
               <tr>
                 <td colSpan={11} className="px-4 py-8 text-center text-slate-400">
@@ -166,6 +193,7 @@ export default function ResultsTable({ results }: { results: Business[] }) {
 }
 
 function matchesAllFilters(b: Business, filters: Set<FilterKey>): boolean {
+  const outreach = computeOutreachReadiness(b);
   for (const f of filters) {
     switch (f) {
       case "HOT":
@@ -183,8 +211,35 @@ function matchesAllFilters(b: Business, filters: Set<FilterKey>): boolean {
       case "WEAK_WEBSITE":
         if (b.website_status !== "weak_website") return false;
         break;
-      case "EMAIL_AVAILABLE":
-        if (!b.email) return false;
+      case "HAS_EMAIL":
+        if (!outreach.channels.email) return false;
+        break;
+      case "HAS_MOBILE":
+        if (!outreach.channels.mobile) return false;
+        break;
+      case "HAS_FACEBOOK":
+        if (!outreach.channels.facebook) return false;
+        break;
+      case "HAS_INSTAGRAM":
+        if (!outreach.channels.instagram) return false;
+        break;
+      case "HAS_LINKEDIN":
+        if (!outreach.channels.linkedin) return false;
+        break;
+      case "ANY_DIGITAL_ROUTE":
+        if (outreach.strongRouteCount === 0) return false;
+        break;
+      case "MULTIPLE_ROUTES":
+        if (outreach.strongRouteCount < 2) return false;
+        break;
+      case "LANDLINE_ONLY":
+        if (!(outreach.strongRouteCount === 0 && outreach.channels.landline)) return false;
+        break;
+      case "NO_USABLE_ROUTE":
+        if (!(outreach.strongRouteCount === 0 && !outreach.channels.landline)) return false;
+        break;
+      case "OUTREACH_READY":
+        if (outreach.tier !== "HIGH" && outreach.tier !== "GOOD") return false;
         break;
     }
   }
@@ -193,6 +248,76 @@ function matchesAllFilters(b: Business, filters: Set<FilterKey>): boolean {
 
 function tierMatches(tier: OpportunityTier, target: OpportunityTier): boolean {
   return tier === target;
+}
+
+// Compact channel indicators for the results table. WA? (not WA) is
+// deliberate — a mobile number is a WhatsApp CANDIDATE, never confirmed.
+function ContactIndicators({ business, outreach }: { business: Business; outreach: ReturnType<typeof computeOutreachReadiness> }) {
+  const [copied, setCopied] = useState<string | null>(null);
+
+  async function copy(label: string, value: string) {
+    await navigator.clipboard.writeText(value);
+    setCopied(label);
+    setTimeout(() => setCopied((c) => (c === label ? null : c)), 1500);
+  }
+
+  return (
+    <div className="flex flex-wrap items-center gap-1">
+      {business.email && (
+        <button
+          type="button"
+          onClick={() => copy("email", business.email!)}
+          title={business.email}
+          className={`rounded px-1.5 py-0.5 text-[10px] font-semibold ${outreachChannelBadgeClasses(true)}`}
+        >
+          {copied === "email" ? "Copied" : "EMAIL"}
+        </button>
+      )}
+      {outreach.channels.mobile && business.phone && (
+        <button
+          type="button"
+          onClick={() => copy("mobile", business.phone!)}
+          title={`${business.phone} — WhatsApp candidate, not confirmed`}
+          className={`rounded px-1.5 py-0.5 text-[10px] font-semibold ${outreachChannelBadgeClasses(true)}`}
+        >
+          {copied === "mobile" ? "Copied" : "WA?"}
+        </button>
+      )}
+      {business.facebook_url && (
+        <a
+          href={business.facebook_url}
+          target="_blank"
+          rel="noreferrer noopener"
+          className={`rounded px-1.5 py-0.5 text-[10px] font-semibold ${outreachChannelBadgeClasses(true)}`}
+        >
+          FB
+        </a>
+      )}
+      {business.instagram_url && (
+        <a
+          href={business.instagram_url}
+          target="_blank"
+          rel="noreferrer noopener"
+          className={`rounded px-1.5 py-0.5 text-[10px] font-semibold ${outreachChannelBadgeClasses(true)}`}
+        >
+          IG
+        </a>
+      )}
+      {business.linkedin_url && (
+        <a
+          href={business.linkedin_url}
+          target="_blank"
+          rel="noreferrer noopener"
+          className={`rounded px-1.5 py-0.5 text-[10px] font-semibold ${outreachChannelBadgeClasses(true)}`}
+        >
+          LI
+        </a>
+      )}
+      {outreach.strongRouteCount === 0 && !outreach.channels.landline && (
+        <span className="text-xs text-slate-300">—</span>
+      )}
+    </div>
+  );
 }
 
 function Th({ children }: { children: React.ReactNode }) {

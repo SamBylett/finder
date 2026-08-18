@@ -4,14 +4,17 @@
 import type { DetectedIssue, OpportunityTier, WebsiteStatus } from "@/lib/types";
 import type { ObjectiveWebsiteChecks } from "@/lib/website-analyzer/types";
 
+// V2.4: contact-channel presence (email/phone/facebook/instagram) is
+// deliberately NOT part of this input. Opportunity Score answers "how
+// strong is the commercial website opportunity" — contactability is a
+// separate question, answered by OutreachReadiness (see lib/outreach.ts).
+// A business isn't a weaker opportunity because we can't reach it; it's
+// just less useful to prioritise for outreach, which OutreachReadiness
+// already covers on its own.
 export interface ScoringInput {
   websiteStatus: WebsiteStatus;
   googleRating: number | null;
   googleReviewCount: number;
-  email: string | null;
-  phone: string | null;
-  facebookUrl: string | null;
-  instagramUrl: string | null;
   // Present only when a website was actually analysed.
   objectiveChecks?: ObjectiveWebsiteChecks;
 }
@@ -117,20 +120,6 @@ export function scoreBusiness(input: ScoringInput): ScoringResult {
       raw += 5;
       breakdown.push({ label: "Google rating 4.0-4.49", points: 5 });
     }
-  }
-
-  // --- Contactability ------------------------------------------------
-  if (input.email) {
-    raw += 10;
-    breakdown.push({ label: "Email address found", points: 10 });
-  }
-  if (input.phone) {
-    raw += 5;
-    breakdown.push({ label: "Phone number found", points: 5 });
-  }
-  if (input.facebookUrl || input.instagramUrl) {
-    raw += 5;
-    breakdown.push({ label: "Facebook or Instagram found", points: 5 });
   }
 
   const opportunityScore = Math.max(0, Math.min(100, Math.round((raw / MAX_RAW_SCORE) * 100)));

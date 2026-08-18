@@ -41,6 +41,7 @@ export interface ExtractedContactInfo {
   email: string | null;
   facebookUrl: string | null;
   instagramUrl: string | null;
+  linkedinUrl: string | null;
 }
 
 export interface WebsiteAnalysisResult {

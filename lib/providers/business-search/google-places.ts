@@ -151,6 +151,7 @@ export class GooglePlacesProvider implements BusinessSearchProvider {
       email: null,
       facebook_url: null,
       instagram_url: null,
+      linkedin_url: null,
     };
 
     return business;

@@ -32,6 +32,7 @@ export type RawBusinessRecord = Pick<
   | "email"
   | "facebook_url"
   | "instagram_url"
+  | "linkedin_url"
 >;
 
 export interface BusinessSearchProvider {

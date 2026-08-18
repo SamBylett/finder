@@ -36,6 +36,7 @@ export const MOCK_BUSINESSES: RawBusinessRecord[] = [
     email: null,
     facebook_url: "https://facebook.com/solentroofingspecialists",
     instagram_url: null,
+    linkedin_url: null,
   },
   {
     id: "b002",
@@ -53,6 +54,7 @@ export const MOCK_BUSINESSES: RawBusinessRecord[] = [
     email: "info@hampshireroofrepairs.example.co.uk",
     facebook_url: "https://facebook.com/hampshireroofrepairs",
     instagram_url: null,
+    linkedin_url: null,
   },
   {
     id: "b003",
@@ -70,6 +72,7 @@ export const MOCK_BUSINESSES: RawBusinessRecord[] = [
     email: "hello@southsearoofing.example.com",
     facebook_url: null,
     instagram_url: "https://instagram.com/southsearoofingco",
+    linkedin_url: null,
   },
   {
     id: "b004",
@@ -87,6 +90,7 @@ export const MOCK_BUSINESSES: RawBusinessRecord[] = [
     email: null,
     facebook_url: null,
     instagram_url: null,
+    linkedin_url: null,
   },
   {
     id: "b005",
@@ -104,6 +108,7 @@ export const MOCK_BUSINESSES: RawBusinessRecord[] = [
     email: "quotes@farehamflatroofing.example.co.uk",
     facebook_url: "https://facebook.com/farehamflatroofing",
     instagram_url: null,
+    linkedin_url: null,
   },
   {
     id: "b006",
@@ -121,6 +126,7 @@ export const MOCK_BUSINESSES: RawBusinessRecord[] = [
     email: null,
     facebook_url: "https://facebook.com/portsmouthplumbingpros",
     instagram_url: "https://instagram.com/portsmouthplumbingpros",
+    linkedin_url: null,
   },
   {
     id: "b007",
@@ -138,6 +144,7 @@ export const MOCK_BUSINESSES: RawBusinessRecord[] = [
     email: "office@rapidresponseplumbers.example.com",
     facebook_url: null,
     instagram_url: null,
+    linkedin_url: null,
   },
   {
     id: "b008",
@@ -155,6 +162,7 @@ export const MOCK_BUSINESSES: RawBusinessRecord[] = [
     email: "info@havantheatingplumbing.example.co.uk",
     facebook_url: "https://facebook.com/havantheatingplumbing",
     instagram_url: null,
+    linkedin_url: null,
   },
   {
     id: "b009",
@@ -172,6 +180,7 @@ export const MOCK_BUSINESSES: RawBusinessRecord[] = [
     email: null,
     facebook_url: null,
     instagram_url: null,
+    linkedin_url: null,
   },
   {
     id: "b010",
@@ -189,6 +198,7 @@ export const MOCK_BUSINESSES: RawBusinessRecord[] = [
     email: "studio@solentlandscaping.example.com",
     facebook_url: "https://facebook.com/solentlandscaping",
     instagram_url: "https://instagram.com/solentlandscaping",
+    linkedin_url: null,
   },
   {
     id: "b011",
@@ -206,6 +216,7 @@ export const MOCK_BUSINESSES: RawBusinessRecord[] = [
     email: null,
     facebook_url: "https://facebook.com/farehamgardenmakeovers",
     instagram_url: null,
+    linkedin_url: null,
   },
   {
     id: "b012",
@@ -223,6 +234,7 @@ export const MOCK_BUSINESSES: RawBusinessRecord[] = [
     email: "hello@chichesterlandscapes.example.co.uk",
     facebook_url: null,
     instagram_url: "https://instagram.com/chichesterlandscapes",
+    linkedin_url: null,
   },
   {
     id: "b013",
@@ -240,6 +252,7 @@ export const MOCK_BUSINESSES: RawBusinessRecord[] = [
     email: null,
     facebook_url: null,
     instagram_url: null,
+    linkedin_url: null,
   },
   {
     id: "b014",
@@ -257,6 +270,7 @@ export const MOCK_BUSINESSES: RawBusinessRecord[] = [
     email: "bookings@portsmouthelectrical.example.com",
     facebook_url: "https://facebook.com/portsmouthelectrical",
     instagram_url: null,
+    linkedin_url: null,
   },
   {
     id: "b015",
@@ -274,6 +288,7 @@ export const MOCK_BUSINESSES: RawBusinessRecord[] = [
     email: null,
     facebook_url: "https://facebook.com/southseasparks",
     instagram_url: null,
+    linkedin_url: null,
   },
   {
     id: "b016",
@@ -291,6 +306,7 @@ export const MOCK_BUSINESSES: RawBusinessRecord[] = [
     email: "admin@havantelectrical.example.co.uk",
     facebook_url: null,
     instagram_url: null,
+    linkedin_url: null,
   },
   {
     id: "b017",
@@ -308,6 +324,7 @@ export const MOCK_BUSINESSES: RawBusinessRecord[] = [
     email: "enquiries@solentbuildersgroup.example.com",
     facebook_url: "https://facebook.com/solentbuildersgroup",
     instagram_url: "https://instagram.com/solentbuildersgroup",
+    linkedin_url: null,
   },
   {
     id: "b018",
@@ -325,6 +342,7 @@ export const MOCK_BUSINESSES: RawBusinessRecord[] = [
     email: null,
     facebook_url: "https://facebook.com/farehambuildingcontractors",
     instagram_url: null,
+    linkedin_url: null,
   },
   {
     id: "b019",
@@ -342,6 +360,7 @@ export const MOCK_BUSINESSES: RawBusinessRecord[] = [
     email: "info@gosportgeneralbuilders.example.co.uk",
     facebook_url: null,
     instagram_url: null,
+    linkedin_url: null,
   },
   {
     id: "b020",
@@ -359,6 +378,7 @@ export const MOCK_BUSINESSES: RawBusinessRecord[] = [
     email: null,
     facebook_url: "https://facebook.com/portsmouthpaintersdecorators",
     instagram_url: "https://instagram.com/portsmouthpaintersdecorators",
+    linkedin_url: null,
   },
   {
     id: "b021",
@@ -376,6 +396,7 @@ export const MOCK_BUSINESSES: RawBusinessRecord[] = [
     email: "studio@winchesterdecor.example.com",
     facebook_url: null,
     instagram_url: "https://instagram.com/winchesterdecor",
+    linkedin_url: null,
   },
   {
     id: "b022",
@@ -393,6 +414,7 @@ export const MOCK_BUSINESSES: RawBusinessRecord[] = [
     email: null,
     facebook_url: null,
     instagram_url: null,
+    linkedin_url: null,
   },
   {
     id: "b023",
@@ -410,6 +432,7 @@ export const MOCK_BUSINESSES: RawBusinessRecord[] = [
     email: "quotes@solentdriveways.example.co.uk",
     facebook_url: "https://facebook.com/solentdriveways",
     instagram_url: null,
+    linkedin_url: null,
   },
   {
     id: "b024",
@@ -427,6 +450,7 @@ export const MOCK_BUSINESSES: RawBusinessRecord[] = [
     email: null,
     facebook_url: "https://facebook.com/farehamblockpaving",
     instagram_url: null,
+    linkedin_url: null,
   },
   {
     id: "b025",
@@ -444,6 +468,7 @@ export const MOCK_BUSINESSES: RawBusinessRecord[] = [
     email: "office@havantdriveways.example.com",
     facebook_url: null,
     instagram_url: null,
+    linkedin_url: null,
   },
   {
     id: "b026",
@@ -461,6 +486,7 @@ export const MOCK_BUSINESSES: RawBusinessRecord[] = [
     email: null,
     facebook_url: "https://facebook.com/portsmouthtreesurgeons",
     instagram_url: "https://instagram.com/portsmouthtreesurgeons",
+    linkedin_url: null,
   },
   {
     id: "b027",
@@ -478,6 +504,7 @@ export const MOCK_BUSINESSES: RawBusinessRecord[] = [
     email: "info@waterloovilletreecare.example.co.uk",
     facebook_url: null,
     instagram_url: null,
+    linkedin_url: null,
   },
   {
     id: "b028",
@@ -495,6 +522,7 @@ export const MOCK_BUSINESSES: RawBusinessRecord[] = [
     email: "help@portsmouthlocksmiths247.example.com",
     facebook_url: "https://facebook.com/portsmouthlocksmiths247",
     instagram_url: null,
+    linkedin_url: null,
   },
   {
     id: "b029",
@@ -512,6 +540,7 @@ export const MOCK_BUSINESSES: RawBusinessRecord[] = [
     email: null,
     facebook_url: null,
     instagram_url: null,
+    linkedin_url: null,
   },
   {
     id: "b030",
@@ -529,6 +558,7 @@ export const MOCK_BUSINESSES: RawBusinessRecord[] = [
     email: "workshop@solentcarpentry.example.co.uk",
     facebook_url: "https://facebook.com/solentcarpentry",
     instagram_url: "https://instagram.com/solentcarpentry",
+    linkedin_url: null,
   },
   {
     id: "b031",
@@ -546,6 +576,7 @@ export const MOCK_BUSINESSES: RawBusinessRecord[] = [
     email: null,
     facebook_url: "https://facebook.com/winchesterbespokejoinery",
     instagram_url: null,
+    linkedin_url: null,
   },
   {
     id: "b032",
@@ -563,6 +594,7 @@ export const MOCK_BUSINESSES: RawBusinessRecord[] = [
     email: "info@manchesterroofingexperts.example.com",
     facebook_url: "https://facebook.com/manchesterroofingexperts",
     instagram_url: null,
+    linkedin_url: null,
   },
   {
     id: "b033",
@@ -580,6 +612,7 @@ export const MOCK_BUSINESSES: RawBusinessRecord[] = [
     email: null,
     facebook_url: "https://facebook.com/bristollandscapingstudio",
     instagram_url: "https://instagram.com/bristollandscapingstudio",
+    linkedin_url: null,
   },
   {
     id: "b034",
@@ -597,5 +630,6 @@ export const MOCK_BUSINESSES: RawBusinessRecord[] = [
     email: "office@leedsplumbingheating.example.co.uk",
     facebook_url: null,
     instagram_url: null,
+    linkedin_url: null,
   },
 ];

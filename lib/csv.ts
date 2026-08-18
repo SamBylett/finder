@@ -1,4 +1,5 @@
 import type { Business } from "@/lib/types";
+import { computeOutreachReadiness } from "@/lib/outreach";
 
 const COLUMNS: { header: string; value: (b: Business) => string | number | null }[] = [
   { header: "Business name", value: (b) => b.business_name },
@@ -12,11 +13,14 @@ const COLUMNS: { header: string; value: (b: Business) => string | number | null 
   { header: "Google Maps URL", value: (b) => b.google_maps_url },
   { header: "Facebook", value: (b) => b.facebook_url },
   { header: "Instagram", value: (b) => b.instagram_url },
+  { header: "LinkedIn", value: (b) => b.linkedin_url },
+  { header: "Phone type", value: (b) => b.phone_type },
   { header: "Google rating", value: (b) => b.google_rating },
   { header: "Google review count", value: (b) => b.google_review_count },
   { header: "Website status", value: (b) => b.website_status },
   { header: "Opportunity score", value: (b) => b.opportunity_score },
   { header: "Opportunity tier", value: (b) => b.opportunity_tier },
+  { header: "Outreach readiness", value: (b) => computeOutreachReadiness(b).tier },
   { header: "Analysis summary", value: (b) => b.analysis_summary },
 ];
 

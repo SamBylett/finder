@@ -136,12 +136,13 @@ export class LiveWebsiteAnalyzer implements WebsiteAnalyzer {
         mergedChecks,
         computePageChecks(sub$, result.value.html, subBodyText, subRawHtmlLower)
       );
-      if (!contact.email || !contact.facebookUrl || !contact.instagramUrl) {
+      if (!contact.email || !contact.facebookUrl || !contact.instagramUrl || !contact.linkedinUrl) {
         const subContact = extractContactInfo(sub$, result.value.finalUrl);
         contact = {
           email: contact.email ?? subContact.email,
           facebookUrl: contact.facebookUrl ?? subContact.facebookUrl,
           instagramUrl: contact.instagramUrl ?? subContact.instagramUrl,
+          linkedinUrl: contact.linkedinUrl ?? subContact.linkedinUrl,
         };
       }
     }
@@ -524,7 +525,7 @@ function stubSubjective() {
 }
 
 function noContact(): ExtractedContactInfo {
-  return { email: null, facebookUrl: null, instagramUrl: null };
+  return { email: null, facebookUrl: null, instagramUrl: null, linkedinUrl: null };
 }
 
 // Pull contact details straight out of the homepage: the first mailto: link
@@ -557,5 +558,6 @@ function extractContactInfo($: cheerio.CheerioAPI, baseUrl: string): ExtractedCo
     email,
     facebookUrl: findSocialLink("facebook.com"),
     instagramUrl: findSocialLink("instagram.com"),
+    linkedinUrl: findSocialLink("linkedin.com"),
   };
 }

@@ -206,5 +206,5 @@ function stubSubjective() {
 }
 
 function noContact() {
-  return { email: null, facebookUrl: null, instagramUrl: null };
+  return { email: null, facebookUrl: null, instagramUrl: null, linkedinUrl: null };
 }
