@@ -10,7 +10,7 @@ import { calculateProspectPriority } from "@/lib/prospect-priority";
 
 type SortKey = "opportunity_score" | "google_review_count" | "demo_potential_score" | "outreach_strong_routes" | "prospect_priority";
 type FilterKey =
-  | "HOT" | "OPPORTUNITY" | "LOW_PRIORITY" | "NO_WEBSITE" | "WEAK_WEBSITE" | "WORTH_REACHING_OUT"
+  | "HOT" | "OPPORTUNITY" | "LOW_PRIORITY" | "NO_WEBSITE" | "BROKEN_WEBSITE" | "WEAK_WEBSITE" | "WORTH_REACHING_OUT"
   | "HAS_EMAIL" | "HAS_MOBILE" | "HAS_FACEBOOK" | "HAS_INSTAGRAM" | "HAS_LINKEDIN"
   | "ANY_DIGITAL_ROUTE" | "MULTIPLE_ROUTES" | "LANDLINE_ONLY" | "NO_USABLE_ROUTE" | "OUTREACH_READY"
   | "HIGH_DEMO_POTENTIAL" | "READY_FOR_DEMO";
@@ -28,6 +28,7 @@ const FILTERS: { key: FilterKey; label: string }[] = [
   { key: "OPPORTUNITY", label: "OPPORTUNITY" },
   { key: "LOW_PRIORITY", label: "LOW PRIORITY" },
   { key: "NO_WEBSITE", label: "No website" },
+  { key: "BROKEN_WEBSITE", label: "Broken website" },
   { key: "WEAK_WEBSITE", label: "Weak website" },
   { key: "READY_FOR_DEMO", label: "Ready for demo" },
   { key: "OUTREACH_READY", label: "Outreach ready" },
@@ -238,6 +239,9 @@ function matchesAllFilters(b: Business, filters: Set<FilterKey>): boolean {
         break;
       case "NO_WEBSITE":
         if (b.website_status !== "no_website") return false;
+        break;
+      case "BROKEN_WEBSITE":
+        if (b.website_status !== "broken_website") return false;
         break;
       case "WEAK_WEBSITE":
         if (b.website_status !== "weak_website") return false;
