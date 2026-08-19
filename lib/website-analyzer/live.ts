@@ -114,7 +114,22 @@ export class LiveWebsiteAnalyzer implements WebsiteAnalyzer {
       if (err instanceof HttpStatusError && BLOCKED_STATUS_CODES.has(err.status)) {
         return this.blockedResult(url, err.status);
       }
-      return this.brokenResult(url);
+      // Network-level failures (timeout, connection reset, DNS blip) are
+      // often transient — a single bad request against an otherwise
+      // perfectly working site would get permanently recorded as
+      // "broken_website" with no way to self-correct. One retry after a
+      // short pause meaningfully cuts false positives; a genuinely dead
+      // site will still fail the retry too, so this doesn't mask real
+      // outages, just one-off flakiness.
+      try {
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+        fetchResult = await this.fetchPage(url);
+      } catch (retryErr) {
+        if (retryErr instanceof HttpStatusError && BLOCKED_STATUS_CODES.has(retryErr.status)) {
+          return this.blockedResult(url, retryErr.status);
+        }
+        return this.brokenResult(url);
+      }
     }
 
     const { html, finalUrl, isHtml } = fetchResult;
