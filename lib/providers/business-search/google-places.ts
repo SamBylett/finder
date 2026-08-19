@@ -49,21 +49,26 @@ export class GooglePlacesProvider implements BusinessSearchProvider {
     const places: PlacesPlace[] = [];
     let pageToken: string | undefined;
 
+    // Google's Places API (New) requires a paginated request to repeat the
+    // ENTIRE original request body alongside pageToken — sending pageToken
+    // alone (as this used to) drops textQuery and locationBias, which
+    // Google rejects with "Empty text_query... Request parameters for
+    // paging requests must match the initial SearchText request."
+    const baseBody: Record<string, unknown> = {
+      textQuery: query.keyword,
+      locationBias: {
+        circle: {
+          center: { latitude: center.latitude, longitude: center.longitude },
+          radius: radiusMeters,
+        },
+      },
+      maxResultCount: 20,
+    };
+
     for (let page = 0; page < MAX_PAGES; page++) {
       if (places.length >= query.maxResults) break;
 
-      const body: Record<string, unknown> = pageToken
-        ? { pageToken }
-        : {
-            textQuery: query.keyword,
-            locationBias: {
-              circle: {
-                center: { latitude: center.latitude, longitude: center.longitude },
-                radius: radiusMeters,
-              },
-            },
-            maxResultCount: 20,
-          };
+      const body = pageToken ? { ...baseBody, pageToken } : baseBody;
 
       const data = await this.callPlaces(body, [
         "places.id",
