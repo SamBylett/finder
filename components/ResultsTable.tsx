@@ -10,12 +10,20 @@ import { calculateProspectPriority } from "@/lib/prospect-priority";
 
 type SortKey = "opportunity_score" | "google_review_count" | "demo_potential_score" | "outreach_strong_routes" | "prospect_priority";
 type FilterKey =
-  | "HOT" | "OPPORTUNITY" | "LOW_PRIORITY" | "NO_WEBSITE" | "WEAK_WEBSITE"
+  | "HOT" | "OPPORTUNITY" | "LOW_PRIORITY" | "NO_WEBSITE" | "WEAK_WEBSITE" | "WORTH_REACHING_OUT"
   | "HAS_EMAIL" | "HAS_MOBILE" | "HAS_FACEBOOK" | "HAS_INSTAGRAM" | "HAS_LINKEDIN"
   | "ANY_DIGITAL_ROUTE" | "MULTIPLE_ROUTES" | "LANDLINE_ONLY" | "NO_USABLE_ROUTE" | "OUTREACH_READY"
   | "HIGH_DEMO_POTENTIAL" | "READY_FOR_DEMO";
 
+// Website statuses genuinely worth a website/digital upsell pitch — average
+// and strong sites already work fine and aren't worth the time, per
+// explicit instruction. "not_analysed" (blocked-from-checking) is
+// deliberately excluded from this bucket too: we don't actually know if
+// it's good or bad, so it shouldn't be silently treated as either.
+const WORTH_REACHING_OUT_STATUSES = new Set(["no_website", "social_only", "broken_website", "weak_website"]);
+
 const FILTERS: { key: FilterKey; label: string }[] = [
+  { key: "WORTH_REACHING_OUT", label: "Worth reaching out to" },
   { key: "HOT", label: "HOT" },
   { key: "OPPORTUNITY", label: "OPPORTUNITY" },
   { key: "LOW_PRIORITY", label: "LOW PRIORITY" },
@@ -38,7 +46,10 @@ const FILTERS: { key: FilterKey; label: string }[] = [
 export default function ResultsTable({ results }: { results: Business[] }) {
   const [sortKey, setSortKey] = useState<SortKey>("opportunity_score");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
-  const [activeFilters, setActiveFilters] = useState<Set<FilterKey>>(new Set());
+  // On by default per explicit instruction: average/strong websites aren't
+  // worth reaching out to. Still an ordinary toggleable filter — clear it
+  // (or the "Clear filters" button) to see everything.
+  const [activeFilters, setActiveFilters] = useState<Set<FilterKey>>(new Set(["WORTH_REACHING_OUT"]));
 
   function toggleFilter(key: FilterKey) {
     setActiveFilters((prev) => {
@@ -230,6 +241,9 @@ function matchesAllFilters(b: Business, filters: Set<FilterKey>): boolean {
         break;
       case "WEAK_WEBSITE":
         if (b.website_status !== "weak_website") return false;
+        break;
+      case "WORTH_REACHING_OUT":
+        if (!WORTH_REACHING_OUT_STATUSES.has(b.website_status)) return false;
         break;
       case "HAS_EMAIL":
         if (!outreach.channels.email) return false;
