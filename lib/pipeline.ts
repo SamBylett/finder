@@ -52,7 +52,13 @@ export async function runOpportunitySearch(params: SearchParams): Promise<Pipeli
         analysisSummary = analysis.subjective.available
           ? `${analysis.summary} AI impression: ${analysis.subjective.overallImpression} ${analysis.subjective.designQualityNotes}`
           : analysis.summary;
-        objectiveChecks = analysis.objective;
+        // "not_analysed" here means the check was blocked (bot-detection),
+        // not that we confirmed an empty/weak page — objectiveChecks would
+        // all be false-by-default in that case, which would falsely score
+        // as if we'd confirmed the site lacks a CTA/form/booking/chat when
+        // we genuinely don't know. Only pass real, meaningfully-observed
+        // checks into scoring.
+        objectiveChecks = analysis.status === "not_analysed" ? undefined : analysis.objective;
 
         // Google Places (and other providers) often don't return email/social
         // links — fill any gaps with what we found on the site itself.

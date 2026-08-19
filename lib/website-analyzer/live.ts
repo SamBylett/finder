@@ -31,8 +31,28 @@ const BOOKING_PAGE_KEYWORDS = ["quote", "estimate", "book", "booking", "appointm
 // A fresh LiveWebsiteAnalyzer instance is created per search (see
 // getWebsiteAnalyzer() in index.ts), so this naturally scopes per search run.
 const DEFAULT_AI_ASSESSMENT_MAX_PER_SEARCH = 15;
+// A self-identifying bot UA gets trivially keyword-blocked by security
+// plugins even on perfectly healthy sites — this is a standard current
+// desktop browser UA instead, same as any legitimate read-only fetch of a
+// business's own public homepage. Note this does NOT defeat genuine
+// TLS/behavioural bot-detection (WAFs like Cloudflare) — see the 403/429
+// handling below, which is the actual fix for that case.
 const USER_AGENT =
-  "Mozilla/5.0 (compatible; UKLocalOpportunityFinderBot/1.0; +https://example.com/bot)";
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
+
+// Status codes that mean "a server responded and refused us" — this is
+// evidence of bot-detection/rate-limiting (Cloudflare, Wordfence, etc.),
+// NOT evidence the site is broken. A real visitor in a real browser very
+// often sees a perfectly working site. Deliberately distinct from a
+// connection-level failure (DNS/reset/timeout/TLS), which genuinely does
+// mean the site is unreachable.
+const BLOCKED_STATUS_CODES = new Set([401, 403, 429, 503]);
+
+class HttpStatusError extends Error {
+  constructor(public status: number) {
+    super(`HTTP ${status}`);
+  }
+}
 
 const CTA_PHRASES = [
   "get a quote",
@@ -90,7 +110,10 @@ export class LiveWebsiteAnalyzer implements WebsiteAnalyzer {
     let fetchResult: { html: string; finalUrl: string; isHtml: boolean };
     try {
       fetchResult = await this.fetchPage(url);
-    } catch {
+    } catch (err) {
+      if (err instanceof HttpStatusError && BLOCKED_STATUS_CODES.has(err.status)) {
+        return this.blockedResult(url, err.status);
+      }
       return this.brokenResult(url);
     }
 
@@ -202,7 +225,7 @@ export class LiveWebsiteAnalyzer implements WebsiteAnalyzer {
       });
 
       if (!res.ok) {
-        throw new Error(`HTTP ${res.status}`);
+        throw new HttpStatusError(res.status);
       }
 
       const contentType = res.headers.get("content-type") ?? "";
@@ -263,6 +286,28 @@ export class LiveWebsiteAnalyzer implements WebsiteAnalyzer {
     );
 
     return results.some((r) => r.status === "rejected" || (r.status === "fulfilled" && !r.value.ok));
+  }
+
+  // A server responded and refused the request (bot-detection/rate-limit
+  // territory), which is fundamentally different evidence than the site
+  // being down. Reported as "not_analysed" (zero Opportunity Score weight,
+  // same as "haven't checked yet") rather than "broken_website" (the
+  // heaviest-weighted signal) — we genuinely don't know if this is a good
+  // or bad site, and it would be actively misleading to score it as if we
+  // do.
+  private blockedResult(url: string, statusCode: number): WebsiteAnalysisResult {
+    return {
+      url,
+      status: "not_analysed",
+      score: null,
+      objective: falseChecks(),
+      subjective: stubSubjective(),
+      summary:
+        `Automated check was blocked (HTTP ${statusCode}) by the site's bot-protection. This is common on ` +
+        `perfectly healthy websites (Cloudflare, Wordfence, and similar security plugins block automated ` +
+        `requests) — it is NOT evidence the site is broken or weak. Open it manually in a browser to judge it.`,
+      contact: noContact(),
+    };
   }
 
   private brokenResult(url: string): WebsiteAnalysisResult {

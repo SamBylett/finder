@@ -47,7 +47,9 @@ export interface ExtractedContactInfo {
 export interface WebsiteAnalysisResult {
   url: string;
   status: WebsiteStatus;
-  score: number; // 0-100 quality score for the website itself
+  // null when the site couldn't be meaningfully checked (e.g. blocked by
+  // bot-detection) — a 0 would falsely imply we saw a terrible site.
+  score: number | null; // 0-100 quality score for the website itself
   objective: ObjectiveWebsiteChecks;
   subjective: SubjectiveWebsiteAssessment;
   summary: string;
