@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { parseCsv, rowsToObjects } from "@/lib/csv-parse";
 import { objectsToCsv, downloadCsv } from "@/lib/csv";
@@ -12,8 +12,23 @@ import type { WebsiteStatus } from "@/lib/types";
 // Batch size/pacing for the client-driven loop — small enough that a single
 // batch request comfortably finishes well within the route's own
 // maxDuration, sequential (not all batches at once) so we don't hammer the
-// analyzer with thousands of simultaneous outbound requests.
-const BATCH_SIZE = 20;
+// analyzer with thousands of simultaneous outbound requests. Kept small
+// (rather than the route's own MAX_BATCH_SIZE of 25) so that a handful of
+// slow/hanging real-world sites in one batch can't push it close to the
+// serverless timeout — smaller batches fail smaller if something does hang.
+const BATCH_SIZE = 10;
+
+// Hard client-side cutoff per batch request — a batch that hangs (e.g. a
+// site that accepts a connection but never responds, slipping past the
+// analyzer's own internal timeout) would otherwise stall the whole run
+// indefinitely with no feedback. Below the route's maxDuration so we detect
+// and move on before Vercel itself would kill the request.
+const BATCH_TIMEOUT_MS = 55_000;
+
+// Retry a batch this many times before giving up on it and marking its
+// domains unresolved — most batch failures are transient (one bad site
+// tripping something up, or a cold serverless start), not permanent.
+const MAX_BATCH_RETRIES = 2;
 
 // Matches the exact column names from the sample CSV, with a few sensible
 // fallback aliases in case a different export uses slightly different
@@ -89,11 +104,27 @@ export default function BulkCheckPage() {
   const [checking, setChecking] = useState(false);
   const [progress, setProgress] = useState({ done: 0, total: 0 });
   const [domainResults, setDomainResults] = useState<Map<string, RowStatus>>(new Map());
+  const [failedDomains, setFailedDomains] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [batchesFailed, setBatchesFailed] = useState(0);
+
+  // Warn before an accidental refresh/navigation loses an in-progress run —
+  // nothing is persisted, so on a large file this could mean losing many
+  // minutes of already-completed checking with no way to recover it.
+  useEffect(() => {
+    if (!checking) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [checking]);
 
   async function handleFile(file: File) {
     setError(null);
     setDomainResults(new Map());
+    setFailedDomains([]);
+    setBatchesFailed(0);
     setFileName(file.name);
     try {
       const text = await file.text();
@@ -123,36 +154,75 @@ export default function BulkCheckPage() {
     return Array.from(new Set(rowDomains.filter((d): d is string => d !== null)));
   }, [rowDomains]);
 
-  async function handleStartCheck() {
-    if (uniqueDomains.length === 0) return;
-    setChecking(true);
-    setError(null);
-    setProgress({ done: 0, total: uniqueDomains.length });
-
-    const results = new Map<string, RowStatus>();
-    for (let i = 0; i < uniqueDomains.length; i += BATCH_SIZE) {
-      const batch = uniqueDomains.slice(i, i + BATCH_SIZE);
+  async function checkBatch(batch: string[]): Promise<BulkCheckResult[]> {
+    let lastErr: unknown = null;
+    for (let attempt = 0; attempt <= MAX_BATCH_RETRIES; attempt++) {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), BATCH_TIMEOUT_MS);
       try {
         const res = await fetch("/api/bulk-check", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ domains: batch }),
+          signal: controller.signal,
         });
         const body = await res.json();
         if (!res.ok) throw new Error(body.error ?? "Batch check failed.");
-        for (const r of body.results as BulkCheckResult[]) {
+        return body.results as BulkCheckResult[];
+      } catch (err) {
+        lastErr = err;
+      } finally {
+        clearTimeout(timer);
+      }
+    }
+    throw lastErr instanceof Error ? lastErr : new Error("Batch check failed.");
+  }
+
+  async function runChecks(domainsToCheck: string[]) {
+    setChecking(true);
+    setError(null);
+    setProgress({ done: 0, total: domainsToCheck.length });
+
+    const results = new Map(domainResults);
+    const stillFailed: string[] = [];
+    let failedBatchCount = 0;
+
+    for (let i = 0; i < domainsToCheck.length; i += BATCH_SIZE) {
+      const batch = domainsToCheck.slice(i, i + BATCH_SIZE);
+      try {
+        const batchResults = await checkBatch(batch);
+        for (const r of batchResults) {
           results.set(r.domain, { status: r.status, score: r.score, summary: r.summary });
         }
       } catch (err) {
-        // Keep going — a batch-level network hiccup shouldn't lose progress
-        // already made; those domains simply stay unresolved (shown as
-        // "Couldn't check" in the results) rather than aborting the whole run.
+        // Keep going — a batch-level failure (timeout, network hiccup)
+        // shouldn't lose progress already made. Those domains are tracked
+        // separately so they're visible and retryable, not silently lost.
+        failedBatchCount++;
+        stillFailed.push(...batch);
         setError(err instanceof Error ? err.message : "Some batches failed — see unresolved rows below.");
       }
-      setProgress({ done: Math.min(i + BATCH_SIZE, uniqueDomains.length), total: uniqueDomains.length });
+      setProgress({ done: Math.min(i + BATCH_SIZE, domainsToCheck.length), total: domainsToCheck.length });
       setDomainResults(new Map(results));
     }
+
+    setFailedDomains(stillFailed);
+    setBatchesFailed((prev) => (domainsToCheck.length === uniqueDomains.length ? failedBatchCount : prev + failedBatchCount));
     setChecking(false);
+  }
+
+  async function handleStartCheck() {
+    if (uniqueDomains.length === 0) return;
+    setFailedDomains([]);
+    setBatchesFailed(0);
+    await runChecks(uniqueDomains);
+  }
+
+  async function handleRetryFailed() {
+    if (failedDomains.length === 0) return;
+    const toRetry = failedDomains;
+    setFailedDomains([]);
+    await runChecks(toRetry);
   }
 
   // Final per-row classification: no-website rows short-circuit without an
@@ -221,6 +291,13 @@ export default function BulkCheckPage() {
         <div className="mt-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>
       )}
 
+      {checking && (
+        <p className="mt-4 text-xs text-amber-600">
+          Checking is in progress — please don&apos;t close or refresh this tab, progress isn&apos;t
+          saved anywhere else.
+        </p>
+      )}
+
       {hasFile && columns && (
         <div className="mt-6 space-y-4">
           <div className="rounded-lg border border-slate-200 bg-white p-4 text-sm">
@@ -256,11 +333,34 @@ export default function BulkCheckPage() {
           )}
 
           {progress.total > 0 && (
-            <div className="h-2 w-full overflow-hidden rounded-full bg-slate-200">
-              <div
-                className="h-full bg-slate-900 transition-all"
-                style={{ width: `${(progress.done / progress.total) * 100}%` }}
-              />
+            <>
+              <div className="h-2 w-full overflow-hidden rounded-full bg-slate-200">
+                <div
+                  className="h-full bg-slate-900 transition-all"
+                  style={{ width: `${(progress.done / progress.total) * 100}%` }}
+                />
+              </div>
+              <p className="text-xs text-slate-500">
+                Checked {progress.done} of {progress.total} unique websites
+                {checking ? " — still going…" : "."}
+              </p>
+            </>
+          )}
+
+          {!checking && failedDomains.length > 0 && (
+            <div className="flex items-center justify-between rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+              <span>
+                {batchesFailed > 0 ? `${batchesFailed} batch${batchesFailed === 1 ? "" : "es"} ` : ""}
+                {failedDomains.length} website{failedDomains.length === 1 ? "" : "s"} couldn&apos;t be
+                checked after {MAX_BATCH_RETRIES + 1} attempts each.
+              </span>
+              <button
+                type="button"
+                onClick={handleRetryFailed}
+                className="rounded-md border border-amber-300 bg-white px-3 py-1.5 text-xs font-medium text-amber-800 hover:bg-amber-100"
+              >
+                Retry {failedDomains.length} failed
+              </button>
             </div>
           )}
 
