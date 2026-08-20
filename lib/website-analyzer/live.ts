@@ -103,8 +103,12 @@ const LIVE_CHAT_PATTERNS = [
 const SOCIAL_DOMAINS = ["facebook.com", "instagram.com", "twitter.com", "x.com", "linkedin.com"];
 
 export class LiveWebsiteAnalyzer implements WebsiteAnalyzer {
-  private aiCallsRemaining =
-    Number(process.env.AI_ASSESSMENT_MAX_PER_SEARCH) || DEFAULT_AI_ASSESSMENT_MAX_PER_SEARCH;
+  private aiCallsRemaining: number;
+
+  constructor(opts?: { maxAiCalls?: number }) {
+    this.aiCallsRemaining =
+      opts?.maxAiCalls ?? (Number(process.env.AI_ASSESSMENT_MAX_PER_SEARCH) || DEFAULT_AI_ASSESSMENT_MAX_PER_SEARCH);
+  }
 
   async analyze(url: string): Promise<WebsiteAnalysisResult> {
     let fetchResult: { html: string; finalUrl: string; isHtml: boolean };

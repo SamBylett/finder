@@ -12,12 +12,20 @@ export default function Home() {
             presence — good prospects for a website / digital upsell.
           </p>
         </div>
-        <Link
-          href="/demos"
-          className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:border-slate-400 hover:bg-slate-50"
-        >
-          View demo sites →
-        </Link>
+        <div className="flex gap-2">
+          <Link
+            href="/bulk-check"
+            className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:border-slate-400 hover:bg-slate-50"
+          >
+            Bulk check a CSV →
+          </Link>
+          <Link
+            href="/demos"
+            className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:border-slate-400 hover:bg-slate-50"
+          >
+            View demo sites →
+          </Link>
+        </div>
       </header>
       <Dashboard />
     </main>

@@ -15,9 +15,9 @@ export type {
  * force the deterministic mock (useful for fast local iteration without
  * hitting real sites).
  */
-export function getWebsiteAnalyzer(): WebsiteAnalyzer {
+export function getWebsiteAnalyzer(opts?: { maxAiCalls?: number }): WebsiteAnalyzer {
   if (process.env.WEBSITE_ANALYZER === "mock") {
     return new MockWebsiteAnalyzer();
   }
-  return new LiveWebsiteAnalyzer();
+  return new LiveWebsiteAnalyzer(opts);
 }

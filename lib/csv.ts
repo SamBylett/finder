@@ -39,6 +39,15 @@ export function businessesToCsv(businesses: Business[]): string {
   return [headerRow, ...rows].join("\r\n");
 }
 
+// Generic version for arbitrary row objects (e.g. the bulk website
+// checker, which needs to preserve every original CSV column plus append
+// new ones — a fixed Business-shaped column list doesn't fit that).
+export function objectsToCsv(headers: string[], rows: Record<string, string | number | null>[]): string {
+  const headerRow = headers.map((h) => escapeCsvCell(h)).join(",");
+  const dataRows = rows.map((row) => headers.map((h) => escapeCsvCell(row[h] ?? "")).join(","));
+  return [headerRow, ...dataRows].join("\r\n");
+}
+
 export function downloadCsv(filename: string, csv: string) {
   // Leading BOM so Excel opens UTF-8 CSVs (e.g. accented characters) correctly.
   const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
